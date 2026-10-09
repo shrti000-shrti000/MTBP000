@@ -2918,7 +2918,8 @@ class PositionStore {
 
 
         if (
-            side === "LONG"
+            side === "LONG" ||
+            side === "BUY_OPEN"
         ) {
 
             priceDifference =
@@ -2927,7 +2928,8 @@ class PositionStore {
 
         }
         else if (
-            side === "SHORT"
+            side === "SHORT" ||
+            side === "SELL_OPEN"
         ) {
 
             priceDifference =
