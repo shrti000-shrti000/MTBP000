@@ -1,0 +1,181 @@
+[
+  {
+    "id": "31046cc1-f25a-4555-9552-f45e7e90cb88",
+    "positionCode": "TEST-1786541844957",
+    "exchange": "TOOBIT",
+    "symbol": "ETHUSDT",
+    "side": "LONG",
+    "status": "OPEN",
+    "entryPrice": 3000,
+    "quantity": 1,
+    "leverage": 1,
+    "stopLoss": null,
+    "takeProfit": null,
+    "timeframe": null,
+    "confidence": null,
+    "signalId": null,
+    "openedAt": "2026-08-12T13:37:24.988Z",
+    "closedAt": null,
+    "exitPrice": null,
+    "reason": null,
+    "pnl": {
+      "value": -1118.77,
+      "percent": -37.29
+    },
+    "currentPrice": 1881.23
+  },
+  {
+    "id": "7734e80f-b300-4483-b6a2-f20669667f0a",
+    "positionCode": "POS-20260812-000005",
+    "exchange": "TOOBIT",
+    "symbol": "ETHUSDT",
+    "side": "LONG",
+    "status": "CLOSED",
+    "entryPrice": 1890.59,
+    "quantity": 0.052894,
+    "leverage": 1,
+    "stopLoss": 1871.6841,
+    "takeProfit": 1928.4018,
+    "timeframe": "1m",
+    "confidence": 80,
+    "signalId": null,
+    "openedAt": "2026-08-12T13:27:33.558Z",
+    "closedAt": "2026-08-12T14:07:53.800Z",
+    "exitPrice": 1888.94,
+    "reason": "TEST_CLOSE",
+    "pnl": {
+      "value": -0.09,
+      "percent": -0.09
+    }
+  },
+  {
+    "id": "22cf5ed5-41ea-4332-a736-32a8d57664bd",
+    "positionCode": "POS-20260808-000001",
+    "exchange": "TOOBIT",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "status": "CLOSED",
+    "entryPrice": 65116.04,
+    "quantity": 0.001536,
+    "leverage": 1,
+    "stopLoss": 64464.8796,
+    "takeProfit": 66418.3608,
+    "timeframe": "1m",
+    "confidence": 80,
+    "signalId": null,
+    "openedAt": "2026-08-08T14:36:31.312Z",
+    "closedAt": null,
+    "exitPrice": null,
+    "reason": null,
+    "pnl": {
+      "value": 0,
+      "percent": 0
+    }
+  },
+  {
+    "id": "cec0a299-d60f-408b-8aee-27d9e1b03177",
+    "positionCode": "POS-20260812-000001",
+    "exchange": "TOOBIT",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "status": "CLOSED",
+    "entryPrice": 63510.04,
+    "quantity": 0.001575,
+    "leverage": 1,
+    "stopLoss": 62874.9396,
+    "takeProfit": 64780.2408,
+    "timeframe": "1m",
+    "confidence": 80,
+    "signalId": null,
+    "openedAt": "2026-08-12T11:23:43.232Z",
+    "closedAt": null,
+    "exitPrice": null,
+    "reason": null,
+    "pnl": {
+      "value": 0,
+      "percent": 0
+    }
+  },
+  {
+    "id": "d1d179d6-29d6-4c23-a364-a06b766f8e3e",
+    "positionCode": "POS-20260812-000002",
+    "exchange": "TOOBIT",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "status": "CLOSED",
+    "entryPrice": 63510.05,
+    "quantity": 0.001575,
+    "leverage": 1,
+    "stopLoss": 62874.9495,
+    "takeProfit": 64780.251,
+    "timeframe": "1m",
+    "confidence": 80,
+    "signalId": null,
+    "openedAt": "2026-08-12T11:23:56.252Z",
+    "closedAt": null,
+    "exitPrice": null,
+    "reason": null,
+    "pnl": {
+      "value": 0,
+      "percent": 0
+    }
+  },
+  {
+    "id": "5804d457-ce2b-41e4-b810-fbaed66a8a56",
+    "positionCode": "POS-20260812-000004",
+    "exchange": "TOOBIT",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "status": "OPEN",
+    "entryPrice": 63536,
+    "quantity": 0.01,
+    "leverage": 1,
+    "stopLoss": null,
+    "takeProfit": 192027.2,
+    "timeframe": "1m",
+    "confidence": 80,
+    "signalId": null,
+    "openedAt": "2026-08-12T13:12:40.669Z",
+    "closedAt": null,
+    "exitPrice": null,
+    "reason": null,
+    "pnl": {
+      "value": -0.34,
+      "percent": -0.05
+    },
+    "trailing": {
+      "active": true,
+      "stopPrice": null
+    },
+    "currentPrice": 63501.84
+  },
+  {
+    "id": "34ab51af-7327-496b-a114-402727e96940",
+    "positionCode": "POS-20260812-000003",
+    "exchange": "TOOBIT",
+    "symbol": "ETHUSDT",
+    "side": "LONG",
+    "status": "OPEN",
+    "entryPrice": 1894.04,
+    "quantity": 0.052797,
+    "leverage": 1,
+    "stopLoss": null,
+    "takeProfit": 1931.9208,
+    "timeframe": "1m",
+    "confidence": 80,
+    "signalId": null,
+    "openedAt": "2026-08-12T12:25:58.672Z",
+    "closedAt": null,
+    "exitPrice": null,
+    "reason": null,
+    "pnl": {
+      "value": -0.68,
+      "percent": -0.68
+    },
+    "trailing": {
+      "active": true,
+      "stopPrice": null
+    },
+    "currentPrice": 1881.23
+  }
+]
