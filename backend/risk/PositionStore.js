@@ -3320,6 +3320,8 @@ class PositionStore {
                 Object.assign(position, previousState);
                 return null;
             }
+
+        }
         catch (error) {
 
             Object.assign(position, previousState);
