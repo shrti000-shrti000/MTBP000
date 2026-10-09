@@ -26,6 +26,11 @@ import riskSettings from "../config/riskSettings.js";
 
 class PositionCloser {
 
+    constructor() {
+        // Prevent overlapping close attempts for the same position ID.
+        this.closingPositions = new Set();
+    }
+
 
 // ==================================================
 // CALCULATE FINAL PNL
@@ -285,6 +290,27 @@ async close(
     position,
     reason = "MANUAL_CLOSE"
 ) {
+
+
+    // The lock is keyed by ID so separate/cloned position objects share it.
+    const positionId = position.id;
+    if (positionId === undefined || positionId === null || String(positionId).trim() === "") {
+        return {
+            success: false,
+            error: "Position ID is required to close safely"
+        };
+    }
+
+    const closeKey = String(positionId);
+    if (this.closingPositions.has(closeKey)) {
+        return {
+            success: false,
+            error: "Position close already in progress",
+            positionId
+        };
+    }
+
+    this.closingPositions.add(closeKey);
 
 
     // ==============================================
@@ -932,6 +958,9 @@ async close(
 
         };
 
+    }
+    finally {
+        this.closingPositions.delete(closeKey);
     }
 
 }
