@@ -251,12 +251,11 @@ static calculate({
 
 
 
+    // Leverage changes required margin, not the quantity allowed by
+    // stop-loss risk. Multiplying the risk-sized quantity by leverage
+    // would multiply planned loss and bypass the max-position cap.
     return Number(
-        (
-            quantity *
-            Number(leverage)
-        )
-        .toFixed(6)
+        quantity.toFixed(6)
     );
 
 
