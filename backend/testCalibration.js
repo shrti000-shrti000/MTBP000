@@ -111,20 +111,29 @@ async function runTest(activeSettings, ema) {
         strategySettingsOverride: settingsOverride
     });
 
+    if (!result || result.success !== true || !result.metrics) {
+        throw new Error(
+            "CalibrationEngine.run() returned no valid metrics object. " +
+            "Expected result.metrics; check the calibration engine response."
+        );
+    }
+
+    const metrics = result.metrics;
+
     return {
         Fast: ema.fast,
         Slow: ema.slow,
-        NetProfit: result.netProfit,
-        PF: result.profitFactor,
-        WinRate: result.winRate,
-        Trades: result.tradeCount,
-        Expectancy: result.expectancy,
-        MaxDD: result.maxDrawdown,
-        Long: result.longTrades,
-        LongWin: result.longWinRate,
-        Short: result.shortTrades,
-        ShortWin: result.shortWinRate,
-        Fees: result.totalFees
+        NetProfit: metrics.netProfit,
+        PF: metrics.profitFactor,
+        WinRate: metrics.winRate,
+        Trades: metrics.tradeCount,
+        Expectancy: metrics.expectancy,
+        MaxDD: metrics.maxDrawdown,
+        Long: metrics.longTrades,
+        LongWin: metrics.longWinRate,
+        Short: metrics.shortTrades,
+        ShortWin: metrics.shortWinRate,
+        Fees: metrics.totalFees
     };
 }
 
