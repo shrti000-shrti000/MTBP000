@@ -209,18 +209,6 @@ if (!exchangePermission.allowed) {
            //     indicators
            // );
 
-
-
-
-            await SignalMemory.set(
-    exchange,
-    symbol,
-    timeframe,
-    signal
-);
-
-
-
 await StrategyStateStore.set(
     exchange,
     symbol,
@@ -301,9 +289,7 @@ await StrategyStateStore.set(
     exchange,
     symbol,
     timeframe,
-    {
-        signal: signal.signal
-    }
+    signal.signal
 );
 
 
