@@ -2,6 +2,8 @@ import PositionStore from "./PositionStore.js";
 import PaperTradingManager from "../config/PaperTradingManager.js";
 import OrderExecutor from "../execution/OrderExecutor.js";
 import LiveTradingManager from "../config/LiveTradingManager.js";
+import RiskStore from "./RiskStore.js";
+import AccountStore from "../account/AccountStore.js";
 
 // ======================================================
 // MTBP
@@ -401,6 +403,8 @@ async close(
             // APPLY REALIZED PNL
             // ======================================
 
+            const balanceBefore = PaperTradingManager.getBalance();
+
             const pnlApplied =
                 await PaperTradingManager
                     .applyRealizedPnL(
@@ -584,6 +588,19 @@ async close(
             // SUCCESS
             // ======================================
 
+            const riskUpdated = RiskStore.recordClosedTrade(
+                finalPnL,
+                balanceBefore,
+                PaperTradingManager.getBalance()
+            );
+
+            if (!riskUpdated) {
+                console.error(
+                    "❌ PAPER RISK STATE UPDATE FAILED:",
+                    { positionId: position.id, pnl: finalPnL }
+                );
+            }
+
             console.log(
                 "🟢 PAPER POSITION CLOSED:",
                 {
@@ -633,6 +650,8 @@ async close(
             !LiveTradingManager
                 .isPaperMode()
         ) {
+
+            const balanceBefore = AccountStore.getBalance();
 
             const order = {
 
@@ -806,7 +825,24 @@ async close(
 
             }
 
+            // AccountStore may refresh asynchronously; use the confirmed close PnL
+            // to update the local risk state immediately.
+            const riskUpdated = RiskStore.recordClosedTrade(
+                finalPnL,
+                balanceBefore,
+                balanceBefore + finalPnL
+            );
 
+            if (!riskUpdated) {
+                console.error(
+                    "❌ LIVE RISK STATE UPDATE FAILED:",
+                    {
+                        positionId: position.id,
+                        pnl: finalPnL,
+                        balanceBefore
+                    }
+                );
+            }
 
             return {
 
