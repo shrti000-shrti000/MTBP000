@@ -49,6 +49,10 @@ const riskSettings = {
 
     maxPortfolioRisk: 9,
 
+    // Estimated taker fee per side; align with calibration fee assumptions.
+    // Update to the actual account fee tier before relying on Paper PnL.
+    tradingFeeRate: 0.0006,
+
 
     // ================= RISK =================
 
