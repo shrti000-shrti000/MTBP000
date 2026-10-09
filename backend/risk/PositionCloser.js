@@ -4,6 +4,7 @@ import OrderExecutor from "../execution/OrderExecutor.js";
 import LiveTradingManager from "../config/LiveTradingManager.js";
 import RiskStore from "./RiskStore.js";
 import AccountStore from "../account/AccountStore.js";
+import riskSettings from "../config/riskSettings.js";
 
 // ======================================================
 // MTBP
@@ -380,10 +381,45 @@ async close(
             // FINAL PNL
             // ======================================
 
-            const finalPnL =
+            const grossPnL =
                 this.calculatePnL(
                     position,
                     closePrice
+                );
+
+            const feeRate =
+                Number(riskSettings.tradingFeeRate);
+
+            if (
+                !Number.isFinite(feeRate) ||
+                feeRate < 0
+            ) {
+                return {
+                    success: false,
+                    mode: "PAPER",
+                    error: "Invalid Paper trading fee rate"
+                };
+            }
+
+            const entryNotional =
+                Number(position.entryPrice) *
+                Number(position.quantity);
+
+            const exitNotional =
+                closePrice *
+                Number(position.quantity);
+
+            const totalFees =
+                Number(
+                    (
+                        (entryNotional + exitNotional) *
+                        feeRate
+                    ).toFixed(8)
+                );
+
+            const finalPnL =
+                Number(
+                    (grossPnL - totalFees).toFixed(8)
                 );
 
 
@@ -407,8 +443,9 @@ async close(
 
             const pnlApplied =
                 await PaperTradingManager
-                    .applyRealizedPnL(
-                        finalPnL
+                    .applyTradeSettlement(
+                        grossPnL,
+                        totalFees
                     );
 
 
@@ -541,13 +578,10 @@ async close(
 
             const closed =
                 await PositionStore.close(
-
                     position.id,
-
                     closePrice,
-
-                    reason
-
+                    reason,
+                    totalFees
                 );
 
 
@@ -609,9 +643,9 @@ async close(
 
                     closePrice,
 
-                    pnl:
-                        finalPnL,
-
+                    pnl: finalPnL,
+                    grossPnL,
+                    fees: totalFees,
                     marginReleased:
                         positionMargin
 
