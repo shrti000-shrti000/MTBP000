@@ -2,12 +2,8 @@
  * ============================================================
  * MTBP - Signal Memory
  *
- * Keeps last signal for every:
- *
- * exchange
- * symbol
- * timeframe
- *
+ * Stores the latest signal string for each exchange/symbol/timeframe.
+ * Callers may pass either a signal string or { signal: string }.
  * ============================================================
  */
 
@@ -20,6 +16,19 @@ class SignalMemory {
         this.ready = this.load();
     }
 
+    normalizeSignal(value) {
+        const raw = value && typeof value === "object"
+            ? value.signal
+            : value;
+
+        if (typeof raw !== "string") {
+            return null;
+        }
+
+        const normalized = raw.trim().toUpperCase();
+        return normalized || null;
+    }
+
     async load() {
         const rows = await this.repository.getAll();
 
@@ -29,8 +38,11 @@ class SignalMemory {
                 row.symbol,
                 row.timeframe
             );
+            const signal = this.normalizeSignal(row.signal);
 
-            this.memory.set(key, row.signal);
+            if (signal !== null) {
+                this.memory.set(key, signal);
+            }
         }
 
         return true;
@@ -53,25 +65,39 @@ class SignalMemory {
             timeframe
         );
 
-        if (row) {
-            this.memory.set(key, row.signal);
-            return row.signal;
+        if (!row) {
+            return null;
         }
 
-        return null;
+        const signal = this.normalizeSignal(row.signal);
+
+        if (signal !== null) {
+            this.memory.set(key, signal);
+        }
+
+        return signal;
     }
 
     async set(exchange, symbol, timeframe, signal) {
         const key = this.buildKey(exchange, symbol, timeframe);
+        const normalizedSignal = this.normalizeSignal(signal);
 
-        this.memory.set(key, signal);
+        if (normalizedSignal === null) {
+            throw new TypeError(
+                "SignalMemory.set requires a signal string or an object with a string signal property."
+            );
+        }
+
+        this.memory.set(key, normalizedSignal);
 
         await this.repository.save(
             exchange,
             symbol,
             timeframe,
-            signal
+            normalizedSignal
         );
+
+        return normalizedSignal;
     }
 
     clear() {
