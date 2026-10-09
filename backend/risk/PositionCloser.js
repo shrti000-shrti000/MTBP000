@@ -291,10 +291,31 @@ async close(
     reason = "MANUAL_CLOSE"
 ) {
 
+    // Validate before accessing position properties or acquiring the lock.
+    if (!position) {
+        return {
+            success: false,
+            error: "Position not found"
+        };
+    }
 
-    // The lock is keyed by ID so separate/cloned position objects share it.
+    if (
+        position.status &&
+        String(position.status).toUpperCase() !== "OPEN"
+    ) {
+        return {
+            success: false,
+            error: "Position is not OPEN"
+        };
+    }
+
     const positionId = position.id;
-    if (positionId === undefined || positionId === null || String(positionId).trim() === "") {
+
+    if (
+        positionId === undefined ||
+        positionId === null ||
+        String(positionId).trim() === ""
+    ) {
         return {
             success: false,
             error: "Position ID is required to close safely"
@@ -302,6 +323,7 @@ async close(
     }
 
     const closeKey = String(positionId);
+
     if (this.closingPositions.has(closeKey)) {
         return {
             success: false,
@@ -311,45 +333,6 @@ async close(
     }
 
     this.closingPositions.add(closeKey);
-
-
-    // ==============================================
-    // VALIDATION
-    // ==============================================
-
-    if (!position) {
-
-        return {
-
-            success: false,
-
-            error:
-                "Position not found"
-
-        };
-
-    }
-
-
-    if (
-        position.status &&
-        String(
-            position.status
-        ).toUpperCase() !== "OPEN"
-    ) {
-
-        return {
-
-            success: false,
-
-            error:
-                "Position is not OPEN"
-
-        };
-
-    }
-
-
 
     try {
 
