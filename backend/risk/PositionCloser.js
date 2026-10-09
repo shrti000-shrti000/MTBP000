@@ -90,13 +90,21 @@ calculatePnL(
     }
 
 
+    // Normalize side values before calculating realized PnL.
+    // Older positions may use order-side aliases or inconsistent casing.
+    const side =
+        String(position.side ?? "")
+            .trim()
+            .toUpperCase();
+
+
     // ==============================================
     // LONG
     // ==============================================
 
     if (
-        position.side === "LONG" ||
-        position.side === "BUY_OPEN"
+        side === "LONG" ||
+        side === "BUY_OPEN"
     ) {
 
         return (
@@ -112,8 +120,8 @@ calculatePnL(
     // ==============================================
 
     if (
-        position.side === "SHORT" ||
-        position.side === "SELL_OPEN"
+        side === "SHORT" ||
+        side === "SELL_OPEN"
     ) {
 
         return (
