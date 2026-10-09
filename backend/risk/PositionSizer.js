@@ -190,12 +190,9 @@ static calculate({
 
 
 
-                quantity =
-
-                    Math.min(
-                        quantity,
-                        riskQuantity
-                    );
+                quantity = quantity > 0
+                    ? Math.min(quantity, riskQuantity)
+                    : riskQuantity;
 
 
             }
