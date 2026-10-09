@@ -460,18 +460,6 @@ class PositionMonitor {
 
 
         // ==============================================
-        // PAPER ACCOUNT SYNC
-        //
-        // Unrealized PnL تمام Position های Paper
-        // محاسبه می‌شود.
-        // ==============================================
-
-        await this.updatePaperAccount(
-            positions
-        );
-
-
-        // ==============================================
         // POSITION MONITOR
         // ==============================================
 
@@ -627,6 +615,19 @@ class PositionMonitor {
 
 
         }
+
+
+        // ==============================================
+        // PAPER ACCOUNT SYNC AFTER EXIT CHECKS
+        //
+        // Stop/TP checks must not wait for sequential Paper
+        // position persistence. Refresh OPEN positions so a
+        // position just closed above is not written back.
+        // ==============================================
+
+        await this.updatePaperAccount(
+            PositionStore.getOpenPositions()
+        );
 
 
     }
