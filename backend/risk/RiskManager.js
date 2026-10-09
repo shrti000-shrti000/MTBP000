@@ -290,8 +290,23 @@ if (
 
         // ================= TRAILING =================
 
-        const trailing =
+        const trailingAtrData =
+    IndicatorStore.get(
+        exchange,
+        symbol,
+        timeframe,
+        "TRAILING_ATR"
+    );
 
+const trailingAtr =
+    typeof trailingAtrData === "object"
+        ? trailingAtrData?.value
+        : trailingAtrData;
+
+
+// Trailing stop must use its dedicated ATR period,
+// not the stop-loss ATR used above.
+const trailing =
     TrailingStopEngine.calculate({
 
         side,
@@ -304,10 +319,9 @@ if (
 
         lowestPrice,
 
-        atr,
+        atr: trailingAtr,
 
         settings:
-
             riskSettings.trailing,
 
     });
