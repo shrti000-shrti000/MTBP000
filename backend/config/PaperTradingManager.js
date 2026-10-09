@@ -1568,6 +1568,8 @@ class PaperTradingManager {
         }
 
 
+        const previousUsedMargin = this.usedMargin;
+
         this.usedMargin -=
             margin;
 
@@ -1584,8 +1586,15 @@ class PaperTradingManager {
 
         this.normalizeState();
 
+        const persisted = await this.persist();
 
-        return await this.persist();
+        if (!persisted) {
+            this.usedMargin = previousUsedMargin;
+            this.normalizeState();
+            return false;
+        }
+
+        return true;
 
     }
 
@@ -1682,6 +1691,13 @@ class PaperTradingManager {
             return false;
         }
 
+        const previousState = {
+            balance: this.balance,
+            realizedPnL: this.realizedPnL,
+            tradingFees: this.tradingFees,
+            unrealizedPnL: this.unrealizedPnL
+        };
+
         const netPnl = grossPnl - fees;
 
         this.balance += netPnl;
@@ -1691,7 +1707,18 @@ class PaperTradingManager {
 
         this.normalizeState();
 
-        return await this.persist();
+        const persisted = await this.persist();
+
+        if (!persisted) {
+            this.balance = previousState.balance;
+            this.realizedPnL = previousState.realizedPnL;
+            this.tradingFees = previousState.tradingFees;
+            this.unrealizedPnL = previousState.unrealizedPnL;
+            this.normalizeState();
+            return false;
+        }
+
+        return true;
     }
 
 
@@ -1866,6 +1893,20 @@ class PaperTradingManager {
         }
 
 
+        // Snapshot mutable counters so a failed persistence can be retried
+        // without counting the same closed trade twice.
+        const previousState = {
+            totalTrades: this.totalTrades,
+            winningTrades: this.winningTrades,
+            losingTrades: this.losingTrades,
+            consecutiveWins: this.consecutiveWins,
+            consecutiveLosses: this.consecutiveLosses,
+            grossProfit: this.grossProfit,
+            grossLoss: this.grossLoss,
+            largestProfit: this.largestProfit,
+            largestLoss: this.largestLoss
+        };
+
         // ==============================================
         // هر Close فقط یک Trade
         // ==============================================
@@ -1964,8 +2005,15 @@ class PaperTradingManager {
 
         this.normalizeState();
 
+        const persisted = await this.persist();
 
-        return await this.persist();
+        if (!persisted) {
+            Object.assign(this, previousState);
+            this.normalizeState();
+            return false;
+        }
+
+        return true;
 
     }
 
