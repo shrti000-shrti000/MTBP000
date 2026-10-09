@@ -7,6 +7,10 @@ class StopLossEngine {
         atr = null
     }) {
 
+        // Normalize legacy order-side aliases used by older positions.
+        side = String(side ?? "").trim().toUpperCase();
+        if (side === "BUY_OPEN") side = "LONG";
+        else if (side === "SELL_OPEN") side = "SHORT";
 
         if (!settings || !settings.enabled) {
             return null;
