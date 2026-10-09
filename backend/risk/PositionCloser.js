@@ -29,6 +29,10 @@ class PositionCloser {
     constructor() {
         // Prevent overlapping close attempts for the same position ID.
         this.closingPositions = new Set();
+
+        // Retain completed Paper-close stages across retries in this process.
+        // This prevents a persistence failure from applying the same settlement twice.
+        this.paperCloseAttempts = new Map();
     }
 
 
@@ -359,7 +363,7 @@ async close(
             // CLOSE PRICE
             // ======================================
 
-            const closePrice =
+            let closePrice =
                 this.getPaperClosePrice(
                     position
                 );
@@ -390,7 +394,7 @@ async close(
             // FINAL PNL
             // ======================================
 
-            const grossPnL =
+            let grossPnL =
                 this.calculatePnL(
                     position,
                     closePrice
@@ -418,7 +422,7 @@ async close(
                 closePrice *
                 Number(position.quantity);
 
-            const totalFees =
+            let totalFees =
                 Number(
                     (
                         (entryNotional + exitNotional) *
@@ -426,7 +430,7 @@ async close(
                     ).toFixed(8)
                 );
 
-            const finalPnL =
+            let finalPnL =
                 Number(
                     (grossPnL - totalFees).toFixed(8)
                 );
@@ -437,10 +441,36 @@ async close(
             // POSITION MARGIN
             // ======================================
 
-            const positionMargin =
+            let positionMargin =
                 this.getPositionMargin(
                     position
                 );
+
+            let closeAttempt =
+                this.paperCloseAttempts.get(closeKey);
+
+            if (!closeAttempt) {
+                closeAttempt = {
+                    closePrice,
+                    grossPnL,
+                    totalFees,
+                    finalPnL,
+                    positionMargin,
+                    balanceBefore: PaperTradingManager.getBalance(),
+                    settlementApplied: false,
+                    marginReleased: false,
+                    tradeRegistered: false
+                };
+                this.paperCloseAttempts.set(closeKey, closeAttempt);
+            } else {
+                // Reuse the original close snapshot so a retry cannot settle a
+                // different price/PnL from the one used in the first attempt.
+                closePrice = closeAttempt.closePrice;
+                grossPnL = closeAttempt.grossPnL;
+                totalFees = closeAttempt.totalFees;
+                finalPnL = closeAttempt.finalPnL;
+                positionMargin = closeAttempt.positionMargin;
+            }
 
 
 
@@ -448,17 +478,21 @@ async close(
             // APPLY REALIZED PNL
             // ======================================
 
-            const balanceBefore = PaperTradingManager.getBalance();
+            const balanceBefore = closeAttempt.balanceBefore;
 
-            const pnlApplied =
-                await PaperTradingManager
-                    .applyTradeSettlement(
-                        grossPnL,
-                        totalFees
-                    );
+            if (!closeAttempt.settlementApplied) {
+                const pnlApplied =
+                    await PaperTradingManager
+                        .applyTradeSettlement(
+                            grossPnL,
+                            totalFees
+                        );
 
+                if (pnlApplied) {
+                    closeAttempt.settlementApplied = true;
+                }
 
-            if (!pnlApplied) {
+                if (!pnlApplied) {
 
                 console.error(
                     "❌ PAPER REALIZED PNL APPLY FAILED:",
@@ -473,18 +507,19 @@ async close(
                 );
 
 
-                return {
+                    return {
 
-                    success: false,
+                        success: false,
 
-                    mode:
-                        "PAPER",
+                        mode:
+                            "PAPER",
 
-                    error:
-                        "Failed to apply Paper realized PnL"
+                        error:
+                            "Failed to apply Paper realized PnL"
 
-                };
+                    };
 
+                }
             }
 
 
@@ -493,18 +528,15 @@ async close(
             // RELEASE MARGIN
             // ======================================
 
-            if (
-                positionMargin > 0
-            ) {
+            if (!closeAttempt.marginReleased) {
+                if (positionMargin > 0) {
+                    const marginReleased =
+                        await PaperTradingManager
+                            .releaseMargin(
+                                positionMargin
+                            );
 
-                const marginReleased =
-                    await PaperTradingManager
-                        .releaseMargin(
-                            positionMargin
-                        );
-
-
-                if (!marginReleased) {
+                    if (!marginReleased) {
 
                     console.error(
                         "❌ PAPER MARGIN RELEASE FAILED:",
@@ -519,20 +551,22 @@ async close(
                     );
 
 
-                    return {
+                        return {
 
-                        success: false,
+                            success: false,
 
-                        mode:
-                            "PAPER",
+                            mode:
+                                "PAPER",
 
-                        error:
-                            "Failed to release Paper margin"
+                            error:
+                                "Failed to release Paper margin"
 
-                    };
+                        };
 
+                    }
                 }
 
+                closeAttempt.marginReleased = true;
             }
 
 
@@ -541,14 +575,18 @@ async close(
             // REGISTER CLOSED TRADE
             // ======================================
 
-            const tradeRegistered =
-                await PaperTradingManager
-                    .registerClosedTrade(
-                        finalPnL
-                    );
+            if (!closeAttempt.tradeRegistered) {
+                const tradeRegistered =
+                    await PaperTradingManager
+                        .registerClosedTrade(
+                            finalPnL
+                        );
 
+                if (tradeRegistered) {
+                    closeAttempt.tradeRegistered = true;
+                }
 
-            if (!tradeRegistered) {
+                if (!tradeRegistered) {
 
                 console.error(
                     "❌ PAPER CLOSED TRADE REGISTER FAILED:",
@@ -563,18 +601,19 @@ async close(
                 );
 
 
-                return {
+                    return {
 
-                    success: false,
+                        success: false,
 
-                    mode:
-                        "PAPER",
+                        mode:
+                            "PAPER",
 
-                    error:
-                        "Failed to register Paper closed trade"
+                        error:
+                            "Failed to register Paper closed trade"
 
-                };
+                    };
 
+                }
             }
 
 
@@ -630,6 +669,8 @@ async close(
             // ======================================
             // SUCCESS
             // ======================================
+
+            this.paperCloseAttempts.delete(closeKey);
 
             const riskUpdated = RiskStore.recordClosedTrade(
                 finalPnL,
