@@ -92,9 +92,14 @@ class PositionMonitor {
         // LONG
         // ==============================================
 
+        const normalizedSide =
+            String(position.side ?? "")
+                .trim()
+                .toUpperCase();
+
         if (
-            position.side === "LONG" ||
-            position.side === "BUY_OPEN"
+            normalizedSide === "LONG" ||
+            normalizedSide === "BUY_OPEN"
         ) {
 
             return (
@@ -110,8 +115,8 @@ class PositionMonitor {
         // ==============================================
 
         if (
-            position.side === "SHORT" ||
-            position.side === "SELL_OPEN"
+            normalizedSide === "SHORT" ||
+            normalizedSide === "SELL_OPEN"
         ) {
 
             return (
@@ -508,8 +513,14 @@ class PositionMonitor {
                 // LONG
                 // ==================================================
 
+                const normalizedSide =
+                    String(position.side ?? "")
+                        .trim()
+                        .toUpperCase();
+
                 if (
-                    position.side === "LONG"
+                    normalizedSide === "LONG" ||
+                    normalizedSide === "BUY_OPEN"
                 ) {
 
 
@@ -552,7 +563,8 @@ class PositionMonitor {
                 // ==================================================
 
                 else if (
-                    position.side === "SHORT"
+                    normalizedSide === "SHORT" ||
+                    normalizedSide === "SELL_OPEN"
                 ) {
 
 
