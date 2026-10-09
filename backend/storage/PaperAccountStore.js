@@ -1620,6 +1620,12 @@ class PaperAccountStore {
         }
 
 
+        const previousAccountState = { ...account };
+        const previousPendingReservations =
+            new Map(this.pendingMarginReservations);
+
+        try {
+
         const normalizedExchange =
             this.normalizeExchange(
                 account.exchange
@@ -1926,6 +1932,21 @@ class PaperAccountStore {
 
 
         return account;
+
+        }
+        catch (error) {
+
+            Object.assign(
+                account,
+                previousAccountState
+            );
+
+            this.pendingMarginReservations =
+                previousPendingReservations;
+
+            throw error;
+
+        }
 
     }
 
