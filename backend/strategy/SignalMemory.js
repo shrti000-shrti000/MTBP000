@@ -2,107 +2,227 @@
  * ============================================================
  * MTBP - Signal Memory
  *
- * Stores the latest signal string for each exchange/symbol/timeframe.
- * Callers may pass either a signal string or { signal: string }.
+ * Keeps last signal for every:
+ *
+ * exchange
+ * symbol
+ * timeframe
+ *
  * ============================================================
  */
 
+
 import SignalMemoryRepository from "../storage/repositories/SignalMemoryRepository.js";
 
+
 class SignalMemory {
-    constructor() {
-        this.memory = new Map();
-        this.repository = SignalMemoryRepository;
-        this.ready = this.load();
-    }
 
-    normalizeSignal(value) {
-        const raw = value && typeof value === "object"
-            ? value.signal
-            : value;
+  //  constructor() {
 
-        if (typeof raw !== "string") {
-            return null;
-        }
+      //  this.memory = new Map()
 
-        const normalized = raw.trim().toUpperCase();
-        return normalized || null;
-    }
+   // }
 
-    async load() {
-        const rows = await this.repository.getAll();
 
-        for (const row of rows) {
-            const key = this.buildKey(
+   //constructor() {
+
+   // this.memory = new Map();
+
+    //this.repository =
+     //   SignalMemoryRepository;
+
+//}
+
+
+constructor() {
+
+    this.memory = new Map();
+
+    this.repository =
+        SignalMemoryRepository;
+
+    this.ready =
+        this.load();
+
+}
+
+
+
+
+async load() {
+
+  //  console.log(
+  //      "📚 LOADING SIGNAL MEMORY"
+   // );
+
+    const rows =
+        await this.repository.getAll();
+
+
+    for (const row of rows) {
+
+        const key =
+            this.buildKey(
                 row.exchange,
                 row.symbol,
                 row.timeframe
             );
-            const signal = this.normalizeSignal(row.signal);
 
-            if (signal !== null) {
-                this.memory.set(key, signal);
-            }
-        }
 
-        return true;
+        this.memory.set(
+            key,
+            row.signal
+        );
+
     }
 
-    buildKey(exchange, symbol, timeframe) {
+
+  //  console.log(
+    //    "✅ SIGNAL MEMORY LOADED:",
+     //   this.memory.size
+   // );
+
+
+    return true;
+
+}
+
+
+
+
+
+
+
+    buildKey(
+
+        exchange,
+
+        symbol,
+
+        timeframe
+
+    ) {
+
         return `${exchange}:${symbol}:${timeframe}`;
+
     }
 
-    async get(exchange, symbol, timeframe) {
-        const key = this.buildKey(exchange, symbol, timeframe);
+    //get(
 
-        if (this.memory.has(key)) {
-            return this.memory.get(key);
-        }
+     //   exchange,
 
-        const row = await this.repository.get(
+     //   symbol,
+
+    //    timeframe
+
+    //) 
+    
+    //{
+
+        //const key = this.buildKey(
+
+          //  exchange,
+
+          //  symbol,
+
+          //  timeframe
+
+      //  );
+
+       // return this.memory.get(key);
+
+    //}
+
+
+
+    async get(
+    exchange,
+    symbol,
+    timeframe
+) {
+
+    const key = this.buildKey(
+        exchange,
+        symbol,
+        timeframe
+    );
+
+
+    if (this.memory.has(key)) {
+
+        return this.memory.get(key);
+
+    }
+
+
+    const row =
+        await this.repository.get(
             exchange,
             symbol,
             timeframe
         );
 
-        if (!row) {
-            return null;
-        }
 
-        const signal = this.normalizeSignal(row.signal);
+    if (row) {
 
-        if (signal !== null) {
-            this.memory.set(key, signal);
-        }
-
-        return signal;
-    }
-
-    async set(exchange, symbol, timeframe, signal) {
-        const key = this.buildKey(exchange, symbol, timeframe);
-        const normalizedSignal = this.normalizeSignal(signal);
-
-        if (normalizedSignal === null) {
-            throw new TypeError(
-                "SignalMemory.set requires a signal string or an object with a string signal property."
-            );
-        }
-
-        this.memory.set(key, normalizedSignal);
-
-        await this.repository.save(
-            exchange,
-            symbol,
-            timeframe,
-            normalizedSignal
+        this.memory.set(
+            key,
+            row.signal
         );
 
-        return normalizedSignal;
+        return row.signal;
+
     }
 
+
+    return null;
+
+}
+
+
+
+
+
+    async set(
+    exchange,
+    symbol,
+    timeframe,
+    signal
+) {
+
+    const key = this.buildKey(
+        exchange,
+        symbol,
+        timeframe
+    );
+
+
+    this.memory.set(
+        key,
+        signal
+    );
+
+
+    await this.repository.save(
+        exchange,
+        symbol,
+        timeframe,
+        signal
+    );
+
+}
+
+
+
+
+
+
     clear() {
+
         this.memory.clear();
+
     }
+
 }
 
 export default new SignalMemory();
