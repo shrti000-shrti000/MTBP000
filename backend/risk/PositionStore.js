@@ -3172,6 +3172,17 @@ class PositionStore {
         }
 
 
+        // Keep the in-memory state unchanged if persistence fails.
+        const previousState = {
+            exitPrice: position.exitPrice,
+            currentPrice: position.currentPrice,
+            pnl: position.pnl,
+            fees: position.fees,
+            status: position.status,
+            closedAt: position.closedAt,
+            reason: position.reason
+        };
+
         position.exitPrice =
             numericExitPrice;
 
@@ -3238,7 +3249,7 @@ class PositionStore {
 
         try {
 
-            await this.repository.update(
+            const persistedPosition = await this.repository.update(
 
                 position.id,
 
@@ -3305,13 +3316,20 @@ class PositionStore {
 
             );
 
-        }
+            if (!persistedPosition) {
+                Object.assign(position, previousState);
+                return null;
+            }
         catch (error) {
+
+            Object.assign(position, previousState);
 
             console.error(
                 "❌ POSITION DATABASE CLOSE UPDATE ERROR:",
                 error?.message || error
             );
+
+            return null;
 
         }
 
