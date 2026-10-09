@@ -1893,85 +1893,67 @@ class PositionStore {
                     stopLossBefore;
 
 
+                // Normalize legacy order-side aliases before applying
+                // trailing-stop protection. Unknown sides must never
+                // bypass the stop-loss protection rules.
+                const trailingSide =
+                    String(position.side ?? "")
+                        .trim()
+                        .toUpperCase() === "BUY_OPEN"
+                        ? "LONG"
+                        : String(position.side ?? "")
+                            .trim()
+                            .toUpperCase() === "SELL_OPEN"
+                            ? "SHORT"
+                            : String(position.side ?? "")
+                                .trim()
+                                .toUpperCase();
+
+
                 if (
                     Number.isFinite(trailingStop) &&
                     trailingStop > 0
                 ) {
 
-                    // ==================================================
-                    // LONG
-                    //
-                    // Trailing Stop باید پایین‌تر از قیمت فعلی باشد.
-                    // اگر بالاتر یا مساوی قیمت فعلی باشد،
-                    // اجازه نداریم آن را به Stop Loss تبدیل کنیم.
-                    // ==================================================
-
+                    // LONG: stop must stay below the current price
+                    // and may only move upward, never loosen.
                     if (
-                        position.side === "LONG"
+                        trailingSide === "LONG" &&
+                        trailingStop < numericPrice
                     ) {
 
-                        if (
-                            trailingStop < numericPrice
-                        ) {
+                        finalStopLoss =
+                            stopLossBefore !== null
+                                ? Math.max(
+                                    stopLossBefore,
+                                    trailingStop
+                                )
+                                : trailingStop;
 
-                            finalStopLoss =
-                                stopLossBefore !== null
-                                    ? Math.max(
-                                        stopLossBefore,
-                                        trailingStop
-                                    )
-                                    : trailingStop;
-
-
-                            position.stopLoss =
-                                finalStopLoss;
-
-                        }
-
-                    }
-
-
-                    // ==================================================
-                    // SHORT
-                    //
-                    // Trailing Stop باید بالاتر از قیمت فعلی باشد.
-                    // اگر پایین‌تر یا مساوی قیمت فعلی باشد،
-                    // اجازه نداریم آن را به Stop Loss تبدیل کنیم.
-                    // ==================================================
-
-                    else if (
-                        position.side === "SHORT"
-                    ) {
-
-                        if (
-                            trailingStop > numericPrice
-                        ) {
-
-                            finalStopLoss =
-                                stopLossBefore !== null
-                                    ? Math.min(
-                                        stopLossBefore,
-                                        trailingStop
-                                    )
-                                    : trailingStop;
-
-
-                            position.stopLoss =
-                                finalStopLoss;
-
-                        }
-
-                    }
-
-
-                    // ==================================================
-                    // OTHER SIDE
-                    // ==================================================
-
-                    else {
 
                         position.stopLoss =
-                            trailingStop;
+                            finalStopLoss;
+
+                    }
+
+                    // SHORT: stop must stay above the current price
+                    // and may only move downward, never loosen.
+                    else if (
+                        trailingSide === "SHORT" &&
+                        trailingStop > numericPrice
+                    ) {
+
+                        finalStopLoss =
+                            stopLossBefore !== null
+                                ? Math.min(
+                                    stopLossBefore,
+                                    trailingStop
+                                )
+                                : trailingStop;
+
+
+                        position.stopLoss =
+                            finalStopLoss;
 
                     }
 
