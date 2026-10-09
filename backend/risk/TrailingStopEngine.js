@@ -21,6 +21,15 @@ class TrailingStopEngine {
     
     {
 
+        // Normalize legacy order-side aliases before trailing-stop calculations.
+        side = String(side ?? "").trim().toUpperCase();
+
+        if (side === "BUY_OPEN") {
+            side = "LONG";
+        } else if (side === "SELL_OPEN") {
+            side = "SHORT";
+        }
+
        // console.log(settings);
 
         const result = {
