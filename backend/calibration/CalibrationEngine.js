@@ -1,4 +1,5 @@
 import strategySettings from "../config/strategySettings.js";
+import riskSettings from "../config/riskSettings.js";
 import SignalEngine from "../strategy/SignalEngine.js";
 import { CandleHistory } from "../candles/candleHistory.js";
 
@@ -71,97 +72,90 @@ export default class CalibrationEngine {
 
         exchange: "TOOBIT",
 
-        symbol: "BTCUSDT",
+        symbol: strategySettings.symbol || "BTCUSDT",
 
-        timeframe: "15m",
+        timeframe: strategySettings.timeframe || "15m",
 
         candleLimit: 470,
 
         initialBalance: 10000,
 
-        leverage: 1,
+        leverage: Number(riskSettings.leverage ?? 1),
 
         feeRate: 0.0006,
 
         slippageRate: 0,
 
-        // ====================================================
-        // STOP LOSS
-        // ====================================================
+        // STOP LOSS — active production settings
 
         stopLoss: {
 
-            enabled: true,
+            enabled: riskSettings.stopLoss?.enabled !== false,
 
-            atrPeriod: 14,
+            atrPeriod: Number(riskSettings.stopLoss?.atrPeriod ?? 10),
 
-            atrMultiplier: 2
+            atrMultiplier: Number(riskSettings.stopLoss?.atrMultiplier ?? 1.7)
 
         },
 
-        // ====================================================
-        // TAKE PROFIT
-        // ====================================================
+        // TAKE PROFIT — map production mode to calibration engine mode
 
         takeProfit: {
 
-            enabled: true,
+            enabled: riskSettings.takeProfit?.enabled !== false,
 
-            /*
-             * FIXED_RR
-             * TRAILING
-             */
-            mode: "FIXED_RR",
+            mode:
+                String(riskSettings.takeProfit?.mode ?? "RISK_REWARD").toUpperCase() === "RISK_REWARD"
+                    ? "FIXED_RR"
+                    : String(riskSettings.takeProfit?.mode ?? "FIXED_RR").toUpperCase(),
 
-            rrRatio: 2
+            rrRatio: Number(riskSettings.takeProfit?.rrRatio ?? 1.5)
 
         },
 
-        // ====================================================
-        // TRAILING
-        // ====================================================
+        // TRAILING — active production settings
 
         trailing: {
 
-            enabled: true,
+            enabled: riskSettings.trailing?.enabled !== false,
 
-            mode: "CHANDELIER",
+            mode: String(riskSettings.trailing?.mode ?? "CHANDELIER").toUpperCase(),
 
-            activationPercent: 0,
+            activationPercent: Number(riskSettings.trailing?.activationPercent ?? 0),
 
-            atrPeriod: 14,
+            atrPeriod: Number(riskSettings.trailing?.atrPeriod ?? 30),
 
-            atrMultiplier: 3,
+            atrMultiplier: Number(riskSettings.trailing?.atrMultiplier ?? 0.5),
 
-            chandelierLookback: 22
+            chandelierLookback: Number(riskSettings.trailing?.chandelierLookback ?? 60),
+
+            volatilitySource: riskSettings.trailing?.volatilitySource ?? "CLOSE"
 
         },
 
-        // ====================================================
-        // PRODUCTION-ALIGNED POSITION SIZING
-        // ====================================================
+        // POSITION SIZING — active production settings
 
         positionSizing: {
 
-            positionMode: "AUTO",
+            positionMode: String(riskSettings.positionMode ?? "AUTO"),
 
-            positionSizePercent: 10,
+            positionSizePercent: Number(riskSettings.positionSizePercent ?? 10),
 
-            fixedLot: 0.01,
+            fixedLot: Number(riskSettings.fixedLot ?? 0.01),
 
-            maxPositionSize: 100,
+            maxPositionSize: Number(riskSettings.maxPositionSize ?? 100),
 
-            minimumOrderSize: 10,
+            minimumOrderSize: Number(riskSettings.minimumOrderSize ?? 10),
 
-            useBalancePercent: true,
+            useBalancePercent: riskSettings.useBalancePercent !== false,
 
-            maxLossPerTrade: 2,
+            maxLossPerTrade: Number(riskSettings.maxLossPerTrade ?? 2),
 
-            riskPerTrade: 1,
+            riskPerTrade: Number(riskSettings.riskPerTrade ?? 1),
 
-            minBalanceToTrade: 5,
+            minBalanceToTrade: Number(riskSettings.minBalanceToTrade ?? 5),
 
-            leverage: 1
+            leverage: Number(riskSettings.leverage ?? 1)
 
         },
 
