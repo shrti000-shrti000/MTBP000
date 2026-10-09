@@ -119,7 +119,7 @@ class TakeProfitEngine {
                     return Number(
 
                         (
-                            entryPrice + risk * rr
+                            numericEntryPrice + risk * rr
                         ).toFixed(6)
 
                     );
@@ -139,7 +139,7 @@ class TakeProfitEngine {
 
             // =====================================
             // ATR
-            // (فعلاً پیاده‌سازی نشده)
+            // Uses the ATR supplied by RiskManager, with settings.atr as fallback.
             // =====================================
 
             case "ATR": {
