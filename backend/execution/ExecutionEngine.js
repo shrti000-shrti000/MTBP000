@@ -115,6 +115,24 @@ class ExecutionEngine {
 
 
 
+
+        // Enforce the platform's active 15m-only policy at the shared
+        // execution gate, including calls that bypass StrategyManager.
+        if (
+            String(order.timeframe ?? "")
+                .trim()
+                .toLowerCase() !== "15m"
+        ) {
+            return {
+                success: false,
+                blocked: true,
+                reason: "TIMEFRAME_NOT_ALLOWED",
+                message: "Only 15m orders are allowed.",
+                timeframe: order.timeframe ?? null,
+                order
+            };
+        }
+
         // ----------------------------------------------
         // EXCHANGE VALIDATION
         // ----------------------------------------------
