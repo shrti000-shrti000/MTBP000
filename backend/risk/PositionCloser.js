@@ -23,6 +23,9 @@ import LiveTradingManager from "../config/LiveTradingManager.js";
 
 class PositionCloser {
 
+constructor() {
+    this.closePromises = new Map();
+}
 
 // ==================================================
 // CALCULATE FINAL PNL
@@ -279,6 +282,33 @@ getPaperClosePrice(
 // ==================================================
 
 async close(
+    position,
+    reason = "MANUAL_CLOSE"
+) {
+    const rawId = position?.id;
+
+    // Without a stable position ID, fall back to the normal validation path.
+    if (rawId === undefined || rawId === null || String(rawId).trim() === "") {
+        return this.closeInternal(position, reason);
+    }
+
+    const positionId = String(rawId);
+    const inFlight = this.closePromises.get(positionId);
+    if (inFlight) return inFlight;
+
+    const pending = this.closeInternal(position, reason);
+    this.closePromises.set(positionId, pending);
+
+    try {
+        return await pending;
+    } finally {
+        if (this.closePromises.get(positionId) === pending) {
+            this.closePromises.delete(positionId);
+        }
+    }
+}
+
+async closeInternal(
     position,
     reason = "MANUAL_CLOSE"
 ) {
