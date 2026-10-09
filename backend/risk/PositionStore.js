@@ -3002,9 +3002,12 @@ class PositionStore {
         }
 
 
+        // Keep the last known persisted state until the update succeeds.
+        const previousState = this.positions[index];
+
         this.positions[index] = {
 
-            ...this.positions[index],
+            ...previousState,
 
             ...position
 
@@ -3017,80 +3020,90 @@ class PositionStore {
 
         try {
 
-            await this.repository.update(
+            const persistedPosition =
+                await this.repository.update(
 
-                position.id,
+                    position.id,
 
-                {
+                    {
 
-                    status:
-                        current.status,
+                        status:
+                            current.status,
 
-                    action:
-                        current.action,
+                        action:
+                            current.action,
 
-                    stop_loss:
-                        current.stopLoss,
+                        stop_loss:
+                            current.stopLoss,
 
-                    take_profit:
-                        current.takeProfit,
+                        take_profit:
+                            current.takeProfit,
 
-                    trailing:
-                        current.trailing,
+                        trailing:
+                            current.trailing,
 
-                    atr:
-                        current.atr,
+                        atr:
+                            current.atr,
 
-                    trailing_settings:
-                        current.trailingSettings,
+                        trailing_settings:
+                            current.trailingSettings,
 
-                    order_type:
-                        current.orderType,
+                        order_type:
+                            current.orderType,
 
-                    risk_amount:
-                        current.riskAmount,
+                        risk_amount:
+                            current.riskAmount,
 
-                    current_price:
-                        current.currentPrice,
+                        current_price:
+                            current.currentPrice,
 
-                    highest_price:
-                        current.highestPrice,
+                        highest_price:
+                            current.highestPrice,
 
-                    lowest_price:
-                        current.lowestPrice,
+                        lowest_price:
+                            current.lowestPrice,
 
-                    exit_price:
-                        current.exitPrice,
+                        exit_price:
+                            current.exitPrice,
 
-                    reason:
-                        current.reason,
+                        reason:
+                            current.reason,
 
-                    closed_at:
-                        current.closedAt,
+                        closed_at:
+                            current.closedAt,
 
-                    pnl_value:
-                        current.pnl?.value ?? 0,
+                        pnl_value:
+                            current.pnl?.value ?? 0,
 
-                    pnl_percent:
-                        current.pnl?.percent ?? 0,
+                        pnl_percent:
+                            current.pnl?.percent ?? 0,
 
-                    fees:
-                        current.fees ?? 0,
+                        fees:
+                            current.fees ?? 0,
 
-                    mode:
-                        current.mode
+                        mode:
+                            current.mode
 
-                }
+                    }
 
-            );
+                );
+
+            if (!persistedPosition) {
+                this.positions[index] = previousState;
+                return null;
+            }
 
         }
         catch (error) {
+
+            this.positions[index] = previousState;
 
             console.error(
                 "❌ POSITION DATABASE UPDATE ERROR:",
                 error?.message || error
             );
+
+            return null;
 
         }
 
