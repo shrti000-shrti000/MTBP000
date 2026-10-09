@@ -1662,6 +1662,40 @@ class PaperTradingManager {
         return await this.persist();
 
     }
+    // ==================================================
+    // APPLY CLOSED TRADE SETTLEMENT (GROSS PNL + FEES)
+    // Atomically updates balance, realized PnL and fees.
+    // ==================================================
+
+    async applyTradeSettlement(grossPnlValue, feeValue) {
+
+        await this.ready;
+
+        const grossPnl = Number(grossPnlValue);
+        const fees = Number(feeValue);
+
+        if (
+            !Number.isFinite(grossPnl) ||
+            !Number.isFinite(fees) ||
+            fees < 0
+        ) {
+            return false;
+        }
+
+        const netPnl = grossPnl - fees;
+
+        this.balance += netPnl;
+        this.realizedPnL += netPnl;
+        this.tradingFees += fees;
+        this.unrealizedPnL = 0;
+
+        this.normalizeState();
+
+        return await this.persist();
+    }
+
+
+
 
 
 
