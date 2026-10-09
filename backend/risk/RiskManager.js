@@ -203,6 +203,29 @@ if (
             Number(stopLossPrice);
 
 
+        // Do not allow trades without a valid protective stop when SL is enabled.
+        // Otherwise AUTO sizing can fall back to balance-percent sizing.
+        if (
+            riskSettings.stopLoss?.enabled &&
+            (
+                !Number.isFinite(numericEntryPrice) ||
+                numericEntryPrice <= 0 ||
+                !Number.isFinite(numericStopLoss) ||
+                numericStopLoss <= 0
+            )
+        ) {
+            return {
+                allowed: false,
+                reason: "STOP_LOSS_UNAVAILABLE",
+                side,
+                entryPrice: numericEntryPrice,
+                stopLoss: stopLossPrice,
+                atr
+            };
+        }
+
+
+
         if (
             Number.isFinite(numericEntryPrice) &&
             Number.isFinite(numericStopLoss)
@@ -429,6 +452,36 @@ console.log(
     "TP RESULT:",
     takeProfitPrice
 );
+
+// Validate enabled fixed-target modes. TRAILING intentionally has no fixed TP.
+const takeProfitMode =
+    String(riskSettings.takeProfit?.mode ?? "").toUpperCase();
+
+if (
+    riskSettings.takeProfit?.enabled &&
+    takeProfitMode !== "TRAILING" &&
+    (
+        !Number.isFinite(Number(takeProfitPrice)) ||
+        Number(takeProfitPrice) <= 0 ||
+        (
+            side === "LONG" &&
+            Number(takeProfitPrice) <= Number(entryPrice)
+        ) ||
+        (
+            side === "SHORT" &&
+            Number(takeProfitPrice) >= Number(entryPrice)
+        )
+    )
+) {
+    return {
+        allowed: false,
+        reason: "TAKE_PROFIT_UNAVAILABLE_OR_INVALID",
+        side,
+        entryPrice: Number(entryPrice),
+        stopLoss: finalStopLoss,
+        takeProfit: takeProfitPrice
+    };
+}
 
         // ================= POSITION SIZE =================
 
