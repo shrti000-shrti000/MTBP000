@@ -1,0 +1,8 @@
+{
+  "toobit": {
+    "enabled": true,
+    "apiKey": "8XDPyhqZlJB7GCGtAu5gsH9Si90f6uqaiSNqhbNidIiVS3Uo2nyR0pbd2Vd7h03o",
+    "secret": "JQdDU6rQitJxshiAgHU5dyAMLGGUCuFSRmlU81IWhboBZzg1qIzyOdf395FPegUN",
+    "wsUrl": "wss://stream.toobit.com/ws"
+  }
+}
