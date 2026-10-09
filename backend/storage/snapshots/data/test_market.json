@@ -1,0 +1,15 @@
+{
+  "symbol": "BTCUSDT",
+  "timeframe": "1m",
+  "candles": [
+    {
+      "open": 100,
+      "close": 105,
+      "time": 1786107681241
+    }
+  ],
+  "indicator": {
+    "RSI": 55,
+    "EMA": 102
+  }
+}
