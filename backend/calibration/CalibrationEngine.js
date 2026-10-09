@@ -1681,8 +1681,23 @@ export default class CalibrationEngine {
                 ];
 
 
-            const exitPrice =
+            let exitPrice =
                 finalCandle.close;
+
+
+            // Apply adverse exit slippage consistently with entry execution.
+            const exitSlippage =
+                Number(config.slippageRate || 0);
+
+            if (
+                Number.isFinite(exitSlippage) &&
+                exitSlippage > 0
+            ) {
+                exitPrice *=
+                    position.side === "LONG"
+                        ? Math.max(0, 1 - exitSlippage)
+                        : 1 + exitSlippage;
+            }
 
 
             const grossPnl =
@@ -2577,6 +2592,24 @@ export default class CalibrationEngine {
 
             };
 
+        }
+
+
+        // =====================================================
+        // EXIT SLIPPAGE
+        // =====================================================
+
+        const exitSlippage =
+            Number(config.slippageRate || 0);
+
+        if (
+            Number.isFinite(exitSlippage) &&
+            exitSlippage > 0
+        ) {
+            exitPrice *=
+                position.side === "LONG"
+                    ? Math.max(0, 1 - exitSlippage)
+                    : 1 + exitSlippage;
         }
 
 
