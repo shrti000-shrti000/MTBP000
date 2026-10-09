@@ -8,6 +8,8 @@ class TakeProfitEngine {
 
         stopLossPrice,
 
+        atr = null,
+
         settings,
 
     }) {
@@ -84,13 +86,33 @@ class TakeProfitEngine {
 
                 }
 
+                const numericEntryPrice = Number(entryPrice);
+                const numericStopLossPrice = Number(stopLossPrice);
+
+                if (
+                    !Number.isFinite(numericEntryPrice) ||
+                    !Number.isFinite(numericStopLossPrice) ||
+                    numericEntryPrice <= 0 ||
+                    numericStopLossPrice <= 0
+                ) {
+                    return null;
+                }
+
                 const risk =
                     Math.abs(
-                        entryPrice - stopLossPrice
+                        numericEntryPrice - numericStopLossPrice
                     );
 
                 const rr =
                     Number(settings.rrRatio ?? settings.value ?? 2);
+
+                if (
+                    !Number.isFinite(rr) ||
+                    rr <= 0 ||
+                    risk <= 0
+                ) {
+                    return null;
+                }
 
                 if (side === "LONG") {
 
@@ -122,12 +144,26 @@ class TakeProfitEngine {
 
             case "ATR": {
 
-    const atr =
-        settings.atr;
+    const numericAtr =
+        atr ?? settings.atr;
+
+    const numericEntryPrice =
+        Number(entryPrice);
 
     if (
-        atr == null ||
-        !Number.isFinite(Number(atr))
+        !Number.isFinite(numericEntryPrice) ||
+        numericEntryPrice <= 0
+    ) {
+        return null;
+    }
+
+    const atrValue =
+        Number(numericAtr);
+
+    if (
+        numericAtr == null ||
+        !Number.isFinite(atrValue) ||
+        atrValue <= 0
     ) {
 
         return null;
@@ -139,14 +175,21 @@ class TakeProfitEngine {
             settings.atrMultiplier ?? 2
         );
 
+    if (
+        !Number.isFinite(multiplier) ||
+        multiplier <= 0
+    ) {
+        return null;
+    }
+
     const distance =
-        Number(atr) * multiplier;
+        atrValue * multiplier;
 
     if (side === "LONG") {
 
         return Number(
             (
-                entryPrice + distance
+                numericEntryPrice + distance
             ).toFixed(6)
         );
 
@@ -154,7 +197,7 @@ class TakeProfitEngine {
 
     return Number(
         (
-            entryPrice - distance
+            numericEntryPrice - distance
         ).toFixed(6)
     );
 
