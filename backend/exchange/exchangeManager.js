@@ -843,10 +843,22 @@ async init() {
             }
 
 
-            if (
-                !ActiveSymbolsStore.has(
+            // Active-symbol filtering is for market scanning and new entries.
+            // Open positions must keep receiving ticks even after a symbol leaves
+            // the active filter, otherwise exit monitoring can use a stale price.
+            const isActiveSymbol =
+                ActiveSymbolsStore.has(
                     tick.symbol
-                )
+                );
+
+            const hasOpenPosition =
+                PositionStore.hasOpenPosition(
+                    tick.symbol
+                );
+
+            if (
+                !isActiveSymbol &&
+                !hasOpenPosition
             ) {
 
                 return;
@@ -906,6 +918,13 @@ async init() {
             // ==========================================
 
             PositionMonitor.update();
+
+            // Do not feed inactive symbols to CandleBuilder: that path can
+            // generate new strategy signals. Existing positions have already
+            // received the tick and had their exit conditions checked above.
+            if (!isActiveSymbol) {
+                return;
+            }
 
 
             // ==========================================
