@@ -615,74 +615,68 @@ if (
 ) {
 
     if (
-        !atr ||
-        atr <= 0
+        !Number.isFinite(Number(atr)) ||
+        Number(atr) <= 0 ||
+        !Number.isFinite(Number(entryPrice)) ||
+        Number(entryPrice) <= 0
     ) {
-
         return result;
-
     }
 
+    const numericAtr = Number(atr);
 
     const multiplier =
-        Number(
-            settings.atrMultiplier ?? 3
-        );
+        Number(settings.atrMultiplier ?? 3);
 
+    // Do not let Chandelier act as an initial stop from the entry tick.
+    // It becomes active only after a favourable move of at least 1 ATR by
+    // default. This avoids an immediate, ultra-tight trail (e.g. 0.5 ATR)
+    // being treated as an entry stop. The initial Stop Loss remains primary.
+    const activationAtrMultiplier = Math.max(
+        0,
+        Number(settings.activationAtrMultiplier ?? 1)
+    );
 
-    const lookback =
-        Number(
-            settings.chandelierLookback ?? 22
-        );
-
-
-    if (
-        side === "LONG"
-    ) {
-
-        result.active = true;
-
-
-        result.stopPrice =
-            Number(
-                (
-                    highestPrice -
-                    (
-                        atr *
-                        multiplier
-                    )
-                )
-                .toFixed(6)
-            );
-
-    }
-
-
+    const activationDistance =
+        numericAtr * activationAtrMultiplier;
 
     if (
-        side === "SHORT"
+        side === "LONG" &&
+        Number(highestPrice) >=
+            Number(entryPrice) + activationDistance
     ) {
+        const stopPrice =
+            Number(highestPrice) -
+            numericAtr * multiplier;
 
-        result.active = true;
-
-
-        result.stopPrice =
-            Number(
-                (
-                    lowestPrice +
-                    (
-                        atr *
-                        multiplier
-                    )
-                )
-                .toFixed(6)
-            );
-
+        if (
+            Number.isFinite(stopPrice) &&
+            stopPrice > 0
+        ) {
+            result.active = true;
+            result.stopPrice = Number(stopPrice.toFixed(8));
+        }
     }
 
+    if (
+        side === "SHORT" &&
+        Number(lowestPrice) <=
+            Number(entryPrice) - activationDistance
+    ) {
+        const stopPrice =
+            Number(lowestPrice) +
+            numericAtr * multiplier;
+
+        if (
+            Number.isFinite(stopPrice) &&
+            stopPrice > 0
+        ) {
+            result.active = true;
+            result.stopPrice = Number(stopPrice.toFixed(8));
+        }
+    }
 
     return result;
-
 }
 
 
