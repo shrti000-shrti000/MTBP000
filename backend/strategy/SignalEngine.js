@@ -1029,6 +1029,41 @@ export default class SignalEngine {
 
 
         // ======================================================
+        // ENTRY CONFIRMATION GATE
+        //
+        // RSI is the primary direction. EMA/MACD must confirm it.
+        // If RSI is neutral, EMA and MACD must agree with each other.
+        // A missing/neutral confirmation is not treated as agreement.
+        // ======================================================
+
+        const confirmationDirections = [
+            emaDirection,
+            macdDirection
+        ].filter(direction => direction !== "NEUTRAL");
+
+        let confirmationSatisfied = false;
+
+        if (
+            rsiDirection === "LONG" ||
+            rsiDirection === "SHORT"
+        ) {
+            confirmationSatisfied =
+                !opposingConfirmation &&
+                confirmationDirections.includes(rsiDirection);
+        } else {
+            confirmationSatisfied =
+                (
+                    emaDirection === "LONG" &&
+                    macdDirection === "LONG"
+                ) ||
+                (
+                    emaDirection === "SHORT" &&
+                    macdDirection === "SHORT"
+                );
+        }
+
+
+        // ======================================================
         // FINAL SIGNAL
         // ======================================================
 
@@ -1037,6 +1072,7 @@ export default class SignalEngine {
 
 
         if (
+            confirmationSatisfied &&
             primaryDirection === "LONG" &&
             signalScore >= signalLimit
         ) {
@@ -1047,6 +1083,7 @@ export default class SignalEngine {
         }
 
         else if (
+            confirmationSatisfied &&
             primaryDirection === "SHORT" &&
             signalScore >= signalLimit
         ) {
