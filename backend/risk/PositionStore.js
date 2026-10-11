@@ -1761,7 +1761,10 @@ class PositionStore {
                 ) {
 
                     trailingHighestPrice =
-                        chandelierLookback.highestHigh;
+                        Math.max(
+                            Number(trailingHighestPrice),
+                            Number(chandelierLookback.highestHigh)
+                        );
 
                 }
 
@@ -1771,7 +1774,10 @@ class PositionStore {
                 ) {
 
                     trailingLowestPrice =
-                        chandelierLookback.lowestLow;
+                        Math.min(
+                            Number(trailingLowestPrice),
+                            Number(chandelierLookback.lowestLow)
+                        );
 
                 }
 
@@ -1905,9 +1911,6 @@ class PositionStore {
                         position.stopLoss = trailingStop;
                     }
                 }
-
-                }
-
 
             }
 
