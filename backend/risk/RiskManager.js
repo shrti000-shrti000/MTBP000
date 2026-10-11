@@ -82,6 +82,16 @@ if (!validation.allowed) {
     };
 }
 
+// A trailing stop is not a substitute for an initial protective stop.
+// Refuse new entries while the base Stop Loss is disabled.
+if (riskSettings.stopLoss?.enabled !== true) {
+    return {
+        allowed: false,
+        reason: "STOP_LOSS_DISABLED",
+        side,
+        entryPrice: Number(entryPrice)
+    };
+}
 
         const atrData =
     IndicatorStore.get(
