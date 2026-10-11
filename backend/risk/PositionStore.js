@@ -1320,185 +1320,176 @@ class PositionStore {
             riskSettings.trailing ??
             null;
 
-
         if (
             !settings ||
             String(settings.mode ?? "")
                 .trim()
                 .toUpperCase() !== "CHANDELIER"
         ) {
-
             return {
-
                 highestHigh: null,
-
                 lowestLow: null,
-
                 candleCount: 0
-
             };
-
         }
-
 
         const lookback =
             Math.max(
                 1,
                 Math.floor(
-                    Number(
-                        settings.chandelierLookback ?? 22
-                    )
+                    Number(settings.chandelierLookback ?? 22)
                 )
             );
 
+        const symbol = position?.symbol;
+        const timeframe = position?.timeframe;
 
-        const symbol =
-            position?.symbol;
-
-
-        const timeframe =
-            position?.timeframe;
-
-
-        if (
-            !symbol ||
-            !timeframe
-        ) {
-
+        if (!symbol || !timeframe) {
             return {
-
                 highestHigh: null,
-
                 lowestLow: null,
-
                 candleCount: 0
-
             };
-
         }
 
-
-        const candleStore =
-            this.candleStore;
-
+        const candleStore = this.candleStore;
 
         if (
             !candleStore ||
             typeof candleStore.get !== "function"
         ) {
-
             return {
-
                 highestHigh: null,
-
                 lowestLow: null,
-
                 candleCount: 0
-
             };
-
         }
 
+        // Only use candles that started at/after this position opened.
+        // Position highestPrice/lowestPrice continue to cover post-entry
+        // ticks from a candle that began before the entry time.
+        const openedAtRaw = position?.openedAt;
+        let openedAtMs = null;
 
-        const candles =
-            candleStore.get(
-                symbol,
-                timeframe
+        if (openedAtRaw instanceof Date) {
+            openedAtMs = openedAtRaw.getTime();
+        } else if (
+            typeof openedAtRaw === "number" &&
+            Number.isFinite(openedAtRaw)
+        ) {
+            openedAtMs =
+                openedAtRaw < 100000000000
+                    ? openedAtRaw * 1000
+                    : openedAtRaw;
+        } else if (
+            openedAtRaw !== null &&
+            openedAtRaw !== undefined &&
+            String(openedAtRaw).trim() !== ""
+        ) {
+            const text = String(openedAtRaw).trim();
+            const numeric = Number(text);
+
+            if (Number.isFinite(numeric) && /^\d+(\.\d+)?$/.test(text)) {
+                openedAtMs =
+                    numeric < 100000000000
+                        ? numeric * 1000
+                        : numeric;
+            } else {
+                const parsed = Date.parse(text);
+                openedAtMs = Number.isFinite(parsed) ? parsed : null;
+            }
+        }
+
+        // If the open time is unknown, do not silently use pre-entry candles.
+        if (openedAtMs === null || !Number.isFinite(openedAtMs)) {
+            return {
+                highestHigh: null,
+                lowestLow: null,
+                candleCount: 0
+            };
+        }
+
+        const toTimestampMs = value => {
+            if (value instanceof Date) {
+                const valueMs = value.getTime();
+                return Number.isFinite(valueMs) ? valueMs : null;
+            }
+
+            if (typeof value === "number" && Number.isFinite(value)) {
+                return value < 100000000000 ? value * 1000 : value;
+            }
+
+            if (value === null || value === undefined || String(value).trim() === "") {
+                return null;
+            }
+
+            const text = String(value).trim();
+            const numeric = Number(text);
+
+            if (Number.isFinite(numeric) && /^\d+(\.\d+)?$/.test(text)) {
+                return numeric < 100000000000 ? numeric * 1000 : numeric;
+            }
+
+            const parsed = Date.parse(text);
+            return Number.isFinite(parsed) ? parsed : null;
+        };
+
+        const candles = candleStore.get(symbol, timeframe);
+
+        if (!Array.isArray(candles) || candles.length === 0) {
+            return {
+                highestHigh: null,
+                lowestLow: null,
+                candleCount: 0
+            };
+        }
+
+        const postEntryCandles = candles.filter(candle => {
+            const candleTime = toTimestampMs(
+                candle?.openTime ??
+                candle?.open_time ??
+                candle?.closeTime ??
+                candle?.time ??
+                candle?.timestamp
             );
 
-
-        if (
-            !Array.isArray(candles) ||
-            candles.length === 0
-        ) {
-
-            return {
-
-                highestHigh: null,
-
-                lowestLow: null,
-
-                candleCount: 0
-
-            };
-
-        }
-
+            return (
+                candleTime !== null &&
+                candleTime >= openedAtMs
+            );
+        });
 
         const recentCandles =
-            candles.slice(-lookback);
+            postEntryCandles.slice(-lookback);
 
+        let highestHigh = null;
+        let lowestLow = null;
 
-        let highestHigh =
-            null;
+        for (const candle of recentCandles) {
+            const high = Number(candle?.high);
+            const low = Number(candle?.low);
 
-
-        let lowestLow =
-            null;
-
-
-        for (
-            const candle
-            of recentCandles
-        ) {
-
-            const high =
-                Number(
-                    candle?.high
-                );
-
-
-            const low =
-                Number(
-                    candle?.low
-                );
-
-
-            if (
-                Number.isFinite(high)
-            ) {
-
+            if (Number.isFinite(high) && high > 0) {
                 highestHigh =
                     highestHigh === null
                         ? high
-                        : Math.max(
-                            highestHigh,
-                            high
-                        );
-
+                        : Math.max(highestHigh, high);
             }
 
-
-            if (
-                Number.isFinite(low)
-            ) {
-
+            if (Number.isFinite(low) && low > 0) {
                 lowestLow =
                     lowestLow === null
                         ? low
-                        : Math.min(
-                            lowestLow,
-                            low
-                        );
-
+                        : Math.min(lowestLow, low);
             }
-
         }
 
-
         return {
-
             highestHigh,
-
             lowestLow,
-
-            candleCount:
-                recentCandles.length
-
+            candleCount: recentCandles.length
         };
-
     }
-
 
     // ==================================================
     // RESERVE PAPER MARGIN
@@ -1875,12 +1866,10 @@ class PositionStore {
                         trailingResult.stopPrice
                     );
 
-
                 const currentStopLoss =
                     Number(
                         position.stopLoss
                     );
-
 
                 const stopLossBefore =
                     Number.isFinite(currentStopLoss) &&
@@ -1888,92 +1877,34 @@ class PositionStore {
                         ? currentStopLoss
                         : null;
 
-
-                let finalStopLoss =
-                    stopLossBefore;
-
+                let finalStopLoss = stopLossBefore;
 
                 if (
                     Number.isFinite(trailingStop) &&
                     trailingStop > 0
                 ) {
+                    // Apply the ratcheted stop even when the current tick has
+                    // already crossed it. In that case PositionMonitor must
+                    // close on this tick instead of ignoring the trail and
+                    // waiting for an older, wider stop to be crossed.
+                    if (position.side === "LONG") {
+                        finalStopLoss =
+                            stopLossBefore !== null
+                                ? Math.max(stopLossBefore, trailingStop)
+                                : trailingStop;
 
-                    // ==================================================
-                    // LONG
-                    //
-                    // Trailing Stop باید پایین‌تر از قیمت فعلی باشد.
-                    // اگر بالاتر یا مساوی قیمت فعلی باشد،
-                    // اجازه نداریم آن را به Stop Loss تبدیل کنیم.
-                    // ==================================================
+                        position.stopLoss = finalStopLoss;
+                    } else if (position.side === "SHORT") {
+                        finalStopLoss =
+                            stopLossBefore !== null
+                                ? Math.min(stopLossBefore, trailingStop)
+                                : trailingStop;
 
-                    if (
-                        position.side === "LONG"
-                    ) {
-
-                        if (
-                            trailingStop < numericPrice
-                        ) {
-
-                            finalStopLoss =
-                                stopLossBefore !== null
-                                    ? Math.max(
-                                        stopLossBefore,
-                                        trailingStop
-                                    )
-                                    : trailingStop;
-
-
-                            position.stopLoss =
-                                finalStopLoss;
-
-                        }
-
+                        position.stopLoss = finalStopLoss;
+                    } else {
+                        position.stopLoss = trailingStop;
                     }
-
-
-                    // ==================================================
-                    // SHORT
-                    //
-                    // Trailing Stop باید بالاتر از قیمت فعلی باشد.
-                    // اگر پایین‌تر یا مساوی قیمت فعلی باشد،
-                    // اجازه نداریم آن را به Stop Loss تبدیل کنیم.
-                    // ==================================================
-
-                    else if (
-                        position.side === "SHORT"
-                    ) {
-
-                        if (
-                            trailingStop > numericPrice
-                        ) {
-
-                            finalStopLoss =
-                                stopLossBefore !== null
-                                    ? Math.min(
-                                        stopLossBefore,
-                                        trailingStop
-                                    )
-                                    : trailingStop;
-
-
-                            position.stopLoss =
-                                finalStopLoss;
-
-                        }
-
-                    }
-
-
-                    // ==================================================
-                    // OTHER SIDE
-                    // ==================================================
-
-                    else {
-
-                        position.stopLoss =
-                            trailingStop;
-
-                    }
+                }
 
                 }
 
