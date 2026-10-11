@@ -792,8 +792,11 @@ return {
 
     atr,
 
-    trailingSettings:
-        riskSettings.trailing
+    trailingSettings: {
+        ...riskSettings.trailing,
+        activationAtrMultiplier:
+            Number(riskSettings.trailing?.activationAtrMultiplier ?? 1)
+    }
 
 };
     }
