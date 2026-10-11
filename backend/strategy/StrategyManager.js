@@ -2,6 +2,12 @@
 
 
 import SignalEngine from "./SignalEngine.js";
+import { randomUUID } from "node:crypto";
+import { appendFile, mkdir } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import strategySettings from "../config/strategySettings.js";
+import riskSettings from "../config/riskSettings.js";
 import SignalMemory from "./SignalMemory.js";
 import RiskManager from "../risk/RiskManager.js";
 import ExecutionEngine from "../execution/ExecutionEngine.js";
@@ -19,6 +25,34 @@ import LiveTradingManager from "../config/LiveTradingManager.js";
 
 
 
+
+const SIGNAL_AUDIT_FILE = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../logs",
+    "signal-audit.jsonl"
+);
+
+function snapshotForAudit(value) {
+    try {
+        return JSON.parse(JSON.stringify(value));
+    } catch {
+        return null;
+    }
+}
+
+async function appendSignalAudit(record) {
+    try {
+        await mkdir(path.dirname(SIGNAL_AUDIT_FILE), { recursive: true });
+        await appendFile(
+            SIGNAL_AUDIT_FILE,
+            `${JSON.stringify(record)}\n`,
+            "utf8"
+        );
+    } catch (error) {
+        // Audit logging must not crash or undo a successfully executed trade.
+        console.error("❌ SIGNAL AUDIT WRITE FAILED:", error?.message || error);
+    }
+}
 
 class StrategyManager {
 
@@ -92,6 +126,14 @@ const signal =
     SignalEngine.calculate(
         indicators
     );
+
+// SignalEngine previously returned no id, so signalId was null for positions.
+// Assign one per calculation and retain exact entry-time inputs.
+signal.id = randomUUID();
+signal.generatedAt = new Date().toISOString();
+
+const indicatorsAtSignal = snapshotForAudit(indicators);
+const strategySettingsAtSignal = snapshotForAudit(strategySettings);
 
 
 
@@ -421,6 +463,17 @@ tradePlan =
 
     });
 
+const riskSettingsAtPlan = snapshotForAudit({
+    stopLoss: riskSettings.stopLoss,
+    takeProfit: riskSettings.takeProfit,
+    trailing: riskSettings.trailing,
+    riskPerTrade: riskSettings.riskPerTrade,
+    maxLossPerTrade: riskSettings.maxLossPerTrade,
+    positionMode: riskSettings.positionMode,
+    positionSizePercent: riskSettings.positionSizePercent,
+    leverage: riskSettings.leverage
+});
+
     
 
 
@@ -573,6 +626,60 @@ console.log("🔍 BEFORE EXECUTION CHECK:", {
     side,
     execution
 });
+
+if (execution?.success === true) {
+    const executedPosition =
+        execution.position ??
+        execution.result?.position ??
+        execution.order?.position ??
+        null;
+
+    await appendSignalAudit({
+        schemaVersion: 1,
+        event: "POSITION_OPENED",
+        signalId: signal.id,
+        signalGeneratedAt: signal.generatedAt,
+        positionOpenedAt: new Date().toISOString(),
+        exchange,
+        symbol,
+        timeframe,
+        side,
+        entryPrice: Number(marketData.price),
+        indicators: indicatorsAtSignal,
+        signal: {
+            value: signal.signal,
+            action: signal.action,
+            confidence: signal.confidence ?? null,
+            signalScore: signal.signalScore ?? null,
+            activeWeight: signal.activeWeight ?? null,
+            directionalWeight: signal.directionalWeight ?? null,
+            details: snapshotForAudit(signal.details)
+        },
+        strategySettings: strategySettingsAtSignal,
+        riskSettings: riskSettingsAtPlan,
+        tradePlan: {
+            allowed: tradePlan?.allowed ?? null,
+            entryPrice: tradePlan?.entryPrice ?? marketData.price,
+            quantity: tradePlan?.quantity ?? null,
+            riskAmount: tradePlan?.riskAmount ?? null,
+            stopLoss: tradePlan?.stopLoss ?? null,
+            takeProfit: tradePlan?.takeProfit ?? null,
+            atr: tradePlan?.atr ?? null,
+            trailing: snapshotForAudit(tradePlan?.trailing),
+            trailingSettings: snapshotForAudit(tradePlan?.trailingSettings)
+        },
+        position: {
+            id: executedPosition?.id ?? null,
+            positionCode: executedPosition?.positionCode ?? null,
+            signalId: signal.id
+        },
+        execution: {
+            success: execution.success,
+            mode: execution.mode ?? null,
+            reason: execution.reason ?? null
+        }
+    });
+}
 
 
 
