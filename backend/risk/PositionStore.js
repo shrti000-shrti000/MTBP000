@@ -230,6 +230,17 @@ class PositionStore {
                                 ? "CLOSED"
                                 : "OPEN",
 
+                        // On restore, the first live quote is a new baseline.
+                        // Do not mistake the persisted (possibly stale) currentPrice
+                        // for the immediately preceding live tick when checking a
+                        // newly calculated trailing-stop crossing.
+                        _awaitingPriceBaseline:
+                            String(
+                                row.status ?? "OPEN"
+                            )
+                            .trim()
+                            .toUpperCase() !== "CLOSED",
+
                         entryPrice:
                             Number(
                                 row.entry_price ?? 0
@@ -1671,6 +1682,18 @@ class PositionStore {
             }
 
 
+            const awaitingPriceBaseline =
+                position._awaitingPriceBaseline === true;
+
+            const previousPrice =
+                awaitingPriceBaseline
+                    ? null
+                    : Number(position.currentPrice);
+
+            if (awaitingPriceBaseline) {
+                position._awaitingPriceBaseline = false;
+            }
+
             position.currentPrice =
                 numericPrice;
 
@@ -1892,89 +1915,53 @@ class PositionStore {
                 let finalStopLoss =
                     stopLossBefore;
 
-
                 if (
                     Number.isFinite(trailingStop) &&
                     trailingStop > 0
                 ) {
+                    // Apply a safe trailing level immediately, or apply it
+                    // when a NEW live tick crosses it. On the first quote after
+                    // database restore, a crossed candidate may be stale because
+                    // currentPrice is persisted state, not a live prior tick.
+                    if (position.side === "LONG") {
+                        const isSafeSide =
+                            trailingStop < numericPrice;
 
-                    // ==================================================
-                    // LONG
-                    //
-                    // Trailing Stop باید پایین‌تر از قیمت فعلی باشد.
-                    // اگر بالاتر یا مساوی قیمت فعلی باشد،
-                    // اجازه نداریم آن را به Stop Loss تبدیل کنیم.
-                    // ==================================================
+                        const crossedOnThisLiveTick =
+                            !awaitingPriceBaseline &&
+                            Number.isFinite(previousPrice) &&
+                            previousPrice > trailingStop &&
+                            numericPrice <= trailingStop;
 
-                    if (
-                        position.side === "LONG"
-                    ) {
-
-                        if (
-                            trailingStop < numericPrice
-                        ) {
-
+                        if (isSafeSide || crossedOnThisLiveTick) {
                             finalStopLoss =
                                 stopLossBefore !== null
-                                    ? Math.max(
-                                        stopLossBefore,
-                                        trailingStop
-                                    )
+                                    ? Math.max(stopLossBefore, trailingStop)
                                     : trailingStop;
 
-
-                            position.stopLoss =
-                                finalStopLoss;
-
+                            position.stopLoss = finalStopLoss;
                         }
+                    } else if (position.side === "SHORT") {
+                        const isSafeSide =
+                            trailingStop > numericPrice;
 
-                    }
+                        const crossedOnThisLiveTick =
+                            !awaitingPriceBaseline &&
+                            Number.isFinite(previousPrice) &&
+                            previousPrice < trailingStop &&
+                            numericPrice >= trailingStop;
 
-
-                    // ==================================================
-                    // SHORT
-                    //
-                    // Trailing Stop باید بالاتر از قیمت فعلی باشد.
-                    // اگر پایین‌تر یا مساوی قیمت فعلی باشد،
-                    // اجازه نداریم آن را به Stop Loss تبدیل کنیم.
-                    // ==================================================
-
-                    else if (
-                        position.side === "SHORT"
-                    ) {
-
-                        if (
-                            trailingStop > numericPrice
-                        ) {
-
+                        if (isSafeSide || crossedOnThisLiveTick) {
                             finalStopLoss =
                                 stopLossBefore !== null
-                                    ? Math.min(
-                                        stopLossBefore,
-                                        trailingStop
-                                    )
+                                    ? Math.min(stopLossBefore, trailingStop)
                                     : trailingStop;
 
-
-                            position.stopLoss =
-                                finalStopLoss;
-
+                            position.stopLoss = finalStopLoss;
                         }
-
+                    } else {
+                        position.stopLoss = trailingStop;
                     }
-
-
-                    // ==================================================
-                    // OTHER SIDE
-                    // ==================================================
-
-                    else {
-
-                        position.stopLoss =
-                            trailingStop;
-
-                    }
-
                 }
 
 
