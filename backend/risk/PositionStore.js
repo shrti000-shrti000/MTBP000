@@ -1864,6 +1864,12 @@ class PositionStore {
             }
 
 
+            const diagnosticPreviousStopLoss =
+                position.stopLoss ?? null;
+
+            const diagnosticPreviousTrailingActive =
+                position.trailing?.active ?? false;
+
             position.currentPrice =
                 numericPrice;
 
@@ -2172,7 +2178,59 @@ class PositionStore {
 
 
             }
+            if (position.stopLoss !== diagnosticPreviousStopLoss) {
 
+                await this.recordDiagnosticEvent({
+                    position_id: position.id,
+                    event_type: "STOP_LOSS_CHANGED",
+                    source: "PositionStore.updatePrice",
+                    exchange: position.exchange,
+                    symbol: position.symbol,
+                    price: position.stopLoss,
+                    old_values: { stopLoss: diagnosticPreviousStopLoss },
+                    new_values: {
+                        stopLoss: position.stopLoss,
+                        currentPrice: numericPrice
+                    },
+                    event_details: {
+                        side: position.side,
+                        atr: position.atr,
+                        trailingSettings: position.trailingSettings,
+                        trailing: position.trailing
+                    }
+                });
+
+                await this.upsertPositionDiagnostic(position, "STOP_LOSS_CHANGED");
+
+            }
+
+            const diagnosticTrailingActive =
+                position.trailing?.active ?? false;
+
+            if (diagnosticTrailingActive !== diagnosticPreviousTrailingActive) {
+
+                await this.recordDiagnosticEvent({
+                    position_id: position.id,
+                    event_type: diagnosticTrailingActive
+                        ? "TRAILING_ACTIVATED"
+                        : "TRAILING_DEACTIVATED",
+                    source: "PositionStore.updatePrice",
+                    exchange: position.exchange,
+                    symbol: position.symbol,
+                    price: numericPrice,
+                    old_values: { active: diagnosticPreviousTrailingActive },
+                    new_values: {
+                        active: diagnosticTrailingActive,
+                        trailing: position.trailing,
+                        stopLoss: position.stopLoss
+                    },
+                    event_details: {
+                        atr: position.atr,
+                        trailingSettings: position.trailingSettings
+                    }
+                });
+
+            }
 
             changed = true;
 
