@@ -1019,7 +1019,7 @@ class PositionStore {
         const fundingFees = Number(position.fundingFees ?? 0);
 
         try {
-            return await TradeDiagnosticRepository.upsertDiagnostic({
+            const diagnosticRecord = {
                 position_id: position.id,
                 position_code: position.positionCode ?? null,
                 exchange: position.exchange ?? null,
@@ -1085,7 +1085,104 @@ class PositionStore {
                     candlesAtCapture,
                     indicatorValues
                 }
-            });
+            };
+
+            const existing =
+                await TradeDiagnosticRepository.findDiagnosticByPositionId(
+                    position.id
+                );
+
+            if (existing) {
+
+                const objectFields = [
+                    "signal_details",
+                    "indicator_scores",
+                    "indicator_values",
+                    "strategy_settings",
+                    "risk_settings"
+                ];
+
+                for (const field of objectFields) {
+                    const incoming = diagnosticRecord[field];
+                    const previous = existing[field];
+
+                    if (
+                        incoming && typeof incoming === "object" &&
+                        !Array.isArray(incoming) &&
+                        previous && typeof previous === "object" &&
+                        !Array.isArray(previous)
+                    ) {
+                        diagnosticRecord[field] = {
+                            ...previous,
+                            ...incoming
+                        };
+                    }
+                    else if (
+                        (!incoming || Object.keys(incoming ?? {}).length === 0) &&
+                        previous && typeof previous === "object"
+                    ) {
+                        diagnosticRecord[field] = previous;
+                    }
+                }
+
+                const arrayFields = [
+                    "entry_fills",
+                    "exit_fills",
+                    "stop_history"
+                ];
+
+                for (const field of arrayFields) {
+                    if (
+                        Array.isArray(existing[field]) &&
+                        existing[field].length > 0 &&
+                        (!Array.isArray(diagnosticRecord[field]) ||
+                         diagnosticRecord[field].length === 0)
+                    ) {
+                        diagnosticRecord[field] = existing[field];
+                    }
+                }
+
+                const scalarFields = [
+                    "position_code", "exchange", "symbol", "mode", "side",
+                    "timeframe", "strategy_name", "signal_id", "signal_time",
+                    "signal_type", "signal_price", "signal_confidence",
+                    "signal_score", "buy_score", "sell_score", "signal_candle",
+                    "entry_candle", "entry_time", "entry_price", "entry_quantity",
+                    "entry_order_id", "initial_stop_loss", "take_profit",
+                    "exit_time", "exit_price", "exit_quantity", "exit_order_id",
+                    "exit_reason", "highest_price", "lowest_price", "mfe", "mae",
+                    "gross_pnl", "fees", "funding_fees", "net_pnl", "expected_risk",
+                    "realized_r"
+                ];
+
+                for (const field of scalarFields) {
+                    if (
+                        (diagnosticRecord[field] === null ||
+                         diagnosticRecord[field] === undefined) &&
+                        existing[field] !== null &&
+                        existing[field] !== undefined
+                    ) {
+                        diagnosticRecord[field] = existing[field];
+                    }
+                }
+
+                diagnosticRecord.source_snapshot = {
+                    ...(existing.source_snapshot ?? {}),
+                    ...(diagnosticRecord.source_snapshot ?? {}),
+                    candlesAtEntry:
+                        position.entryCandleContext ??
+                        existing.source_snapshot?.candlesAtEntry ??
+                        []
+                };
+
+            }
+
+            return await TradeDiagnosticRepository.upsertDiagnostic(
+                diagnosticRecord
+            );
+        }
+        catch (error) {
+            console.error("❌ TRADE DIAGNOSTIC SNAPSHOT WRITE ERROR:"            });
         }
         catch (error) {
             console.error("❌ TRADE DIAGNOSTIC SNAPSHOT WRITE ERROR:", error?.message || error);
