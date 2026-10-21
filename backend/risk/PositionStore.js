@@ -1487,8 +1487,23 @@ class PositionStore {
                     indicatorScores:
                         position.indicatorScores ?? {},
 
+                    indicatorValues:
+                        position.indicatorValues ?? {},
+
                     strategySettings:
-                        position.strategySettings ?? null,
+                        position.strategySettings ?? {},
+
+                    riskSettings:
+                        position.riskSettings ?? {},
+
+                    signalCandle:
+                        position.signalCandle ?? null,
+
+                    entryCandle:
+                        position.entryCandle ?? null,
+
+                    entryCandleContext:
+                        position.entryCandleContext ?? [],
 
                     signalTime:
                         position.signalTime ?? null,
