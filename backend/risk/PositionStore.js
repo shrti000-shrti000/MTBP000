@@ -968,11 +968,33 @@ class PositionStore {
             }
         }
 
-        const missingFields = [
-            "signal_candle", "entry_candle", "signal_details", "signal_scores",
-            "entry_order_id", "entry_fills", "exit_candle", "exit_order_id",
-            "exit_fills", "sl_tp_change_history"
-        ];
+        const missingFields = [];
+
+        if (!position.signalCandle) missingFields.push("signal_candle");
+        if (!position.entryCandle) missingFields.push("entry_candle");
+        if (!position.signalDetails || Object.keys(position.signalDetails).length === 0) {
+            missingFields.push("signal_details");
+        }
+        if (
+            position.signalScore == null &&
+            position.buyScore == null &&
+            position.sellScore == null
+        ) {
+            missingFields.push("signal_scores");
+        }
+        if (!position.entryOrderId) missingFields.push("entry_order_id");
+        if (!Array.isArray(position.entryFills) || position.entryFills.length === 0) {
+            missingFields.push("entry_fills");
+        }
+        if (position.status === "CLOSED") {
+            if (!position.exitCandle && candlesAtCapture.length === 0) {
+                missingFields.push("exit_candle");
+            }
+            if (!position.exitOrderId) missingFields.push("exit_order_id");
+            if (!Array.isArray(position.exitFills) || position.exitFills.length === 0) {
+                missingFields.push("exit_fills");
+            }
+        }
 
         const entry = Number(position.entryPrice);
         const high = Number(position.highestPrice);
@@ -1021,6 +1043,8 @@ class PositionStore {
                 risk_settings: position.riskSettings ?? {},
                 signal_candle: position.signalCandle ?? null,
                 entry_candle: position.entryCandle ?? null,
+                exit_candle: position.exitCandle ??
+                    (captureStage === "POSITION_CLOSED" ? candlesAtCapture.at(-1) ?? null : null),
                 entry_time: position.openedAt ?? null,
                 entry_price: position.entryPrice ?? null,
                 entry_quantity: position.quantity ?? null,
