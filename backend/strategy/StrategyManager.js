@@ -1,7 +1,6 @@
 // backend/strategy/StrategyManager.js
 
 
-import crypto from "crypto";
 import SignalEngine from "./SignalEngine.js";
 import strategySettings from "../config/strategySettings.js";
 import SignalMemory from "./SignalMemory.js";
@@ -98,16 +97,8 @@ const signal =
 // Capture the exact inputs used for this signal without changing the decision.
 if (signal && typeof signal === "object") {
 
-    signal.id =
-        signal.id ?? crypto.randomUUID();
-
     signal.timestamp =
         new Date().toISOString();
-
-    signal.signalPrice =
-        Number.isFinite(Number(marketData?.price)) && Number(marketData?.price) > 0
-            ? Number(marketData.price)
-            : null;
 
     signal.strategySettings =
         JSON.parse(JSON.stringify(strategySettings ?? {}));
