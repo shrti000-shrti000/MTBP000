@@ -20,6 +20,9 @@ import IndicatorStore
 import riskSettings
     from "../config/riskSettings.js";
 
+import TradeDiagnosticRepository
+    from "../storage/repositories/TradeDiagnosticRepository.js";
+
 
 // ======================================================
 // POSITION STORE
@@ -879,6 +882,144 @@ class PositionStore {
     }
 
 
+
+    // ==================================================
+    // TRADE DIAGNOSTICS - BEST EFFORT, NEVER BLOCK TRADING
+    // ==================================================
+
+    async recordDiagnosticEvent(event) {
+
+        try {
+            return await TradeDiagnosticRepository.addEvent(event);
+        }
+        catch (error) {
+            console.error("❌ TRADE DIAGNOSTIC EVENT WRITE ERROR:", error?.message || error);
+            return null;
+        }
+
+    }
+
+
+    async upsertPositionDiagnostic(position, captureStage) {
+
+        if (!position?.id) return null;
+
+        let indicatorValues = {};
+
+        if (position.exchange && position.symbol && position.timeframe) {
+            try {
+                indicatorValues = IndicatorStore.getAll(
+                    position.exchange,
+                    position.symbol,
+                    position.timeframe
+                ) ?? {};
+            }
+            catch (error) {
+                console.error("❌ TRADE DIAGNOSTIC INDICATOR SNAPSHOT ERROR:", error?.message || error);
+            }
+        }
+
+        const missingFields = [
+            "signal_candle", "entry_candle", "signal_details", "signal_scores",
+            "entry_order_id", "entry_fills", "exit_candle", "exit_order_id",
+            "exit_fills", "sl_tp_change_history"
+        ];
+
+        const entry = Number(position.entryPrice);
+        const high = Number(position.highestPrice);
+        const low = Number(position.lowestPrice);
+        const quantity = Number(position.quantity);
+        const side = String(position.side ?? "").toUpperCase();
+        let mfe = null;
+        let mae = null;
+
+        if ([entry, high, low, quantity].every(Number.isFinite) && entry > 0 && high > 0 && low > 0 && quantity > 0) {
+            if (side === "LONG") {
+                mfe = Math.max(0, (high - entry) * quantity);
+                mae = Math.max(0, (entry - low) * quantity);
+            } else if (side === "SHORT") {
+                mfe = Math.max(0, (entry - low) * quantity);
+                mae = Math.max(0, (high - entry) * quantity);
+            }
+        }
+
+        const grossPnl = position.status === "CLOSED" ? Number(position.pnl?.value ?? 0) : null;
+        const fees = Number(position.fees ?? 0);
+        const fundingFees = Number(position.fundingFees ?? 0);
+
+        try {
+            return await TradeDiagnosticRepository.upsertDiagnostic({
+                position_id: position.id,
+                position_code: position.positionCode ?? null,
+                exchange: position.exchange ?? null,
+                symbol: position.symbol ?? null,
+                mode: position.mode ?? null,
+                side,
+                timeframe: position.timeframe ?? null,
+                strategy_name: position.strategyName ?? null,
+                signal_id: position.signalId ?? null,
+                signal_time: position.signalTime ?? null,
+                signal_type: position.signalType ?? null,
+                signal_price: position.signalPrice ?? null,
+                signal_confidence: position.confidence ?? null,
+                signal_score: position.signalScore ?? null,
+                buy_score: position.buyScore ?? null,
+                sell_score: position.sellScore ?? null,
+                signal_details: position.signalDetails ?? {},
+                indicator_scores: position.indicatorScores ?? {},
+                indicator_values: indicatorValues,
+                strategy_settings: position.strategySettings ?? {},
+                risk_settings: position.riskSettings ?? {},
+                signal_candle: position.signalCandle ?? null,
+                entry_candle: position.entryCandle ?? null,
+                entry_time: position.openedAt ?? null,
+                entry_price: position.entryPrice ?? null,
+                entry_quantity: position.quantity ?? null,
+                entry_order_id: position.entryOrderId ?? null,
+                entry_fills: position.entryFills ?? [],
+                initial_stop_loss: position.initialStopLoss ?? position.stopLoss ?? null,
+                current_stop_loss: position.stopLoss ?? null,
+                take_profit: position.takeProfit ?? null,
+                trailing_settings: position.trailingSettings ?? {},
+                stop_history: position.stopHistory ?? [],
+                exit_time: position.closedAt ?? null,
+                exit_price: position.exitPrice ?? null,
+                exit_quantity: position.status === "CLOSED" ? position.quantity ?? null : null,
+                exit_order_id: position.exitOrderId ?? null,
+                exit_reason: position.reason ?? null,
+                exit_fills: position.exitFills ?? [],
+                highest_price: position.highestPrice ?? null,
+                lowest_price: position.lowestPrice ?? null,
+                mfe,
+                mae,
+                gross_pnl: grossPnl,
+                fees,
+                funding_fees: position.fundingFees ?? null,
+                net_pnl: grossPnl === null ? null : grossPnl - fees - fundingFees,
+                expected_risk: position.riskAmount ?? null,
+                realized_r: null,
+                data_quality: "INCOMPLETE",
+                missing_fields: missingFields,
+                source_snapshot: {
+                    captureStage,
+                    positionId: position.id,
+                    positionCode: position.positionCode ?? null,
+                    orderType: position.orderType ?? null,
+                    confidence: position.confidence ?? null,
+                    atr: position.atr ?? null,
+                    trailing: position.trailing ?? null,
+                    indicatorValues
+                }
+            });
+        }
+        catch (error) {
+            console.error("❌ TRADE DIAGNOSTIC SNAPSHOT WRITE ERROR:", error?.message || error);
+            return null;
+        }
+
+    }
+
+
     // ==================================================
     // ADD POSITION
     // ==================================================
@@ -1284,6 +1425,58 @@ class PositionStore {
                             "⚠️ POSITION DATABASE CREATE RETURNED EMPTY"
                         );
 
+                    }
+
+                    await this.upsertPositionDiagnostic(newPosition, "POSITION_OPENED");
+
+                    await this.recordDiagnosticEvent({
+                        position_id: newPosition.id,
+                        event_type: "POSITION_OPENED",
+                        source: "PositionStore.add",
+                        exchange: newPosition.exchange,
+                        symbol: newPosition.symbol,
+                        price: newPosition.entryPrice,
+                        quantity: newPosition.quantity,
+                        new_values: {
+                            side: newPosition.side,
+                            mode: newPosition.mode,
+                            entryPrice: newPosition.entryPrice,
+                            stopLoss: newPosition.stopLoss,
+                            takeProfit: newPosition.takeProfit,
+                            riskAmount: newPosition.riskAmount,
+                            atr: newPosition.atr,
+                            trailingSettings: newPosition.trailingSettings,
+                            signalId: newPosition.signalId
+                        },
+                        event_details: {
+                            positionCode: newPosition.positionCode,
+                            timeframe: newPosition.timeframe,
+                            orderType: newPosition.orderType
+                        }
+                    });
+
+                    if (newPosition.stopLoss !== null && newPosition.stopLoss !== undefined) {
+                        await this.recordDiagnosticEvent({
+                            position_id: newPosition.id,
+                            event_type: "INITIAL_STOP_LOSS_SET",
+                            source: "PositionStore.add",
+                            exchange: newPosition.exchange,
+                            symbol: newPosition.symbol,
+                            price: newPosition.stopLoss,
+                            new_values: { stopLoss: newPosition.stopLoss }
+                        });
+                    }
+
+                    if (newPosition.takeProfit !== null && newPosition.takeProfit !== undefined) {
+                        await this.recordDiagnosticEvent({
+                            position_id: newPosition.id,
+                            event_type: "INITIAL_TAKE_PROFIT_SET",
+                            source: "PositionStore.add",
+                            exchange: newPosition.exchange,
+                            symbol: newPosition.symbol,
+                            price: newPosition.takeProfit,
+                            new_values: { takeProfit: newPosition.takeProfit }
+                        });
                     }
 
                 }
@@ -3234,6 +3427,36 @@ class PositionStore {
             this.detectCloseReason(
                 position
             );
+
+        await this.upsertPositionDiagnostic(position, "POSITION_CLOSED");
+
+        await this.recordDiagnosticEvent({
+            position_id: position.id,
+            event_type: "POSITION_CLOSED",
+            source: "PositionStore.close",
+            exchange: position.exchange,
+            symbol: position.symbol,
+            price: numericExitPrice,
+            quantity: position.quantity,
+            new_values: {
+                status: position.status,
+                exitPrice: numericExitPrice,
+                exitReason: position.reason,
+                grossPnl: position.pnl?.value ?? null,
+                fees: position.fees,
+                netPnl: Number(position.pnl?.value ?? 0) - Number(position.fees ?? 0) - Number(position.fundingFees ?? 0),
+                stopLoss: position.stopLoss,
+                takeProfit: position.takeProfit,
+                trailing: position.trailing,
+                highestPrice: position.highestPrice,
+                lowestPrice: position.lowestPrice
+            },
+            event_details: {
+                positionCode: position.positionCode,
+                openedAt: position.openedAt,
+                closedAt: position.closedAt
+            }
+        });
 
 
         try {
