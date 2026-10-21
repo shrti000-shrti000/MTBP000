@@ -581,7 +581,16 @@ async close(
                     position.id,
                     closePrice,
                     reason,
-                    totalFees
+                    totalFees,
+                    {
+                        exitFills: [{
+                            price: closePrice,
+                            quantity: position.quantity,
+                            fee: totalFees,
+                            filledAt: new Date().toISOString(),
+                            source: "PAPER_SIMULATION"
+                        }]
+                    }
                 );
 
 
@@ -836,7 +845,27 @@ async close(
 
                     closePrice,
 
-                    reason
+                    reason,
+
+                    0,
+
+                    {
+                        exitOrderId:
+                            result.orderId ??
+                            result.orderID ??
+                            result.id ??
+                            null,
+
+                        exitFills:
+                            Array.isArray(result.fills)
+                                ? result.fills
+                                : [],
+
+                        fundingFees:
+                            result.fundingFees ??
+                            result.fundingFee ??
+                            null
+                    }
 
                 );
 
