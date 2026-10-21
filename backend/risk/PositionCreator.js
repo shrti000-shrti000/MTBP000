@@ -208,6 +208,26 @@ class PositionCreator {
                         indicatorScores:
                             order.indicatorScores ?? {},
 
+                        // Preserve diagnostic inputs through position creation.
+                        indicatorValues:
+                            order.indicatorValues ??
+                            order.signalDetails?.rawIndicators ??
+                            {},
+
+                        riskSettings:
+                            order.riskSettings ?? null,
+
+                        signalCandle:
+                            order.signalCandle ?? null,
+
+                        entryCandle:
+                            order.entryCandle ?? null,
+
+                        entryCandleContext:
+                            Array.isArray(order.entryCandleContext)
+                                ? order.entryCandleContext
+                                : [],
+
                         strategySettings:
                             order.strategySettings ?? null,
 
