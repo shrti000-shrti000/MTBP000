@@ -425,6 +425,9 @@ class PositionExecutor {
             signalTime:
                 tradePlan.signalTime ?? null,
 
+            signalPrice:
+                tradePlan.signalPrice ?? null,
+
             entryOrderId:
                 tradePlan.entryOrderId ?? null,
 
