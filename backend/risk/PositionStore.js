@@ -1197,8 +1197,185 @@ class PositionStore {
 
             }
 
+            const toCandleColumns = (prefix, candle) => {
+                if (!candle || typeof candle !== "object") return {};
+                return {
+                    [`${prefix}_open_time`]: candle.openTime ?? candle.open_time ?? candle.time ?? null,
+                    [`${prefix}_open`]: candle.open ?? null,
+                    [`${prefix}_high`]: candle.high ?? null,
+                    [`${prefix}_low`]: candle.low ?? null,
+                    [`${prefix}_close`]: candle.close ?? null,
+                    [`${prefix}_volume`]: candle.volume ?? null,
+                    [`${prefix}_closed`]: candle.closed ?? candle.isClosed ?? null
+                };
+            };
+
+            const indicators = indicatorValues ?? {};
+            const strategy = position.strategySettings ?? {};
+            const risk = position.riskSettings ?? riskSettings ?? {};
+            const numeric = value =>
+                value !== null && value !== undefined && Number.isFinite(Number(value))
+                    ? Number(value)
+                    : null;
+            const indicator = (...keys) => {
+                for (const key of keys) {
+                    const value = indicators[key];
+                    if (value !== undefined && value !== null &&
+                        typeof value !== "object") return numeric(value);
+                    if (value && typeof value === "object" && value.value != null) {
+                        return numeric(value.value);
+                    }
+                }
+                return null;
+            };
+            const setting = (...keys) => {
+                for (const key of keys) {
+                    if (strategy[key] !== undefined) return strategy[key];
+                }
+                return null;
+            };
+            const riskValue = (...keys) => {
+                for (const key of keys) {
+                    if (risk[key] !== undefined) return risk[key];
+                }
+                return null;
+            };
+
+            const databaseRecord = {
+                position_id: diagnosticRecord.position_id,
+                collection_version: 1,
+                collection_started_at: position.openedAt ?? position.signalTime ?? null,
+                exchange: diagnosticRecord.exchange,
+                symbol: diagnosticRecord.symbol,
+                mode: diagnosticRecord.mode,
+                side: diagnosticRecord.side,
+                timeframe: diagnosticRecord.timeframe,
+                signal_id: diagnosticRecord.signal_id,
+                order_id: diagnosticRecord.entry_order_id,
+                exchange_order_id: diagnosticRecord.exit_order_id,
+                signal_at: diagnosticRecord.signal_time,
+                order_created_at: position.orderCreatedAt ?? null,
+                order_filled_at: position.orderFilledAt ?? position.openedAt ?? null,
+                position_opened_at: diagnosticRecord.entry_time,
+                position_closed_at: diagnosticRecord.exit_time,
+                signal_action: diagnosticRecord.signal_type,
+                signal_name: diagnosticRecord.strategy_name,
+                signal_confidence: diagnosticRecord.signal_confidence,
+                signal_buy_score: diagnosticRecord.buy_score,
+                signal_sell_score: diagnosticRecord.sell_score,
+                signal_buy_votes: position.buyVotes ?? null,
+                signal_sell_votes: position.sellVotes ?? null,
+                signal_total_weight: position.totalWeight ?? null,
+                signal_active_weight: position.activeWeight ?? null,
+                signal_directional_weight: position.directionalWeight ?? null,
+                signal_volume_confirmed: position.volumeConfirmed ?? null,
+                signal_details: diagnosticRecord.signal_details,
+                signal_raw: {
+                    signalPrice: diagnosticRecord.signal_price,
+                    signalScore: diagnosticRecord.signal_score,
+                    indicatorScores: diagnosticRecord.indicator_scores,
+                    entryFills: diagnosticRecord.entry_fills,
+                    exitFills: diagnosticRecord.exit_fills,
+                    sourceSnapshot: diagnosticRecord.source_snapshot
+                },
+                rsi_value: indicator("RSI", "rsi", "rsiValue"),
+                rsi_period: setting("rsiPeriod", "rsi_period"),
+                rsi_buy_level: setting("rsiBuyLevel", "rsi_buy_level", "rsiBuy"),
+                rsi_sell_level: setting("rsiSellLevel", "rsi_sell_level", "rsiSell"),
+                rsi_weight: setting("rsiWeight", "rsi_weight"),
+                rsi_enabled: setting("rsiEnabled", "rsi_enabled"),
+                ema_fast_value: indicator("EMA_FAST", "emaFast", "ema_fast", "fastEMA"),
+                ema_slow_value: indicator("EMA_SLOW", "emaSlow", "ema_slow", "slowEMA"),
+                ema_fast_period: setting("emaFastPeriod", "ema_fast_period", "emaFast"),
+                ema_slow_period: setting("emaSlowPeriod", "ema_slow_period", "emaSlow"),
+                ema_weight: setting("emaWeight", "ema_weight"),
+                ema_enabled: setting("emaEnabled", "ema_enabled"),
+                macd_value: indicator("MACD", "macd", "macdValue"),
+                macd_signal_value: indicator("MACD_SIGNAL", "macdSignal", "macd_signal"),
+                macd_histogram: indicator("MACD_HISTOGRAM", "macdHistogram", "macd_histogram"),
+                macd_fast_period: setting("macdFastPeriod", "macd_fast_period"),
+                macd_slow_period: setting("macdSlowPeriod", "macd_slow_period"),
+                macd_signal_period: setting("macdSignalPeriod", "macd_signal_period"),
+                macd_weight: setting("macdWeight", "macd_weight"),
+                macd_enabled: setting("macdEnabled", "macd_enabled"),
+                volume_value: indicator("VOLUME", "volume", "volumeValue"),
+                volume_average: indicator("VOLUME_AVERAGE", "volumeAverage", "volume_average"),
+                volume_multiplier: setting("volumeMultiplier", "volume_multiplier"),
+                volume_period: setting("volumePeriod", "volume_period"),
+                volume_weight: setting("volumeWeight", "volume_weight"),
+                volume_enabled: setting("volumeEnabled", "volume_enabled"),
+                atr_value: numeric(position.atr ?? indicator("ATR", "atr")),
+                atr_period: setting("atrPeriod", "atr_period"),
+                strategy_settings_snapshot: strategy,
+                indicators_snapshot: indicators,
+                ...toCandleColumns("signal_candle", diagnosticRecord.signal_candle),
+                ...toCandleColumns("entry_candle", diagnosticRecord.entry_candle),
+                ...toCandleColumns("exit_candle", diagnosticRecord.exit_candle),
+                entry_reference_price: diagnosticRecord.signal_price ?? diagnosticRecord.entry_price,
+                entry_fill_price: diagnosticRecord.entry_price,
+                entry_requested_quantity: diagnosticRecord.entry_quantity,
+                entry_filled_quantity: diagnosticRecord.entry_quantity,
+                entry_order_type: diagnosticRecord.source_snapshot?.orderType ?? null,
+                entry_leverage: numeric(position.leverage),
+                entry_notional: numeric(diagnosticRecord.entry_price) !== null &&
+                    numeric(diagnosticRecord.entry_quantity) !== null
+                    ? numeric(diagnosticRecord.entry_price) * numeric(diagnosticRecord.entry_quantity)
+                    : null,
+                entry_margin: numeric(position.marginReserved),
+                initial_balance: riskValue("initialBalance", "initial_balance"),
+                available_balance_at_entry: riskValue("availableBalance", "available_balance"),
+                equity_at_entry: riskValue("equity", "equityAtEntry", "equity_at_entry"),
+                risk_amount: diagnosticRecord.expected_risk,
+                risk_percent: riskValue("riskPerTrade", "riskPercent", "risk_percent"),
+                position_size_percent: riskValue("positionSizePercent", "position_size_percent"),
+                max_loss_per_trade_percent: riskValue("maxLossPerTrade", "maxLossPerTradePercent", "max_loss_per_trade_percent"),
+                max_portfolio_risk_percent: riskValue("maxPortfolioRisk", "maxPortfolioRiskPercent", "max_portfolio_risk_percent"),
+                open_positions_at_entry: position.openPositionsAtEntry ?? null,
+                initial_stop_loss: diagnosticRecord.initial_stop_loss,
+                initial_take_profit: diagnosticRecord.take_profit,
+                initial_stop_distance: numeric(diagnosticRecord.entry_price) !== null &&
+                    numeric(diagnosticRecord.initial_stop_loss) !== null
+                    ? Math.abs(numeric(diagnosticRecord.entry_price) - numeric(diagnosticRecord.initial_stop_loss))
+                    : null,
+                initial_reward_risk_ratio: riskValue("rewardRiskRatio", "takeProfitRR", "take_profit_rr_ratio"),
+                stop_loss_mode: riskValue("stopLossMode", "stop_loss_mode"),
+                stop_loss_atr_multiplier: riskValue("stopLossAtrMultiplier", "stopLossAtr", "stop_loss_atr_multiplier"),
+                take_profit_mode: riskValue("takeProfitMode", "take_profit_mode"),
+                take_profit_rr_ratio: riskValue("takeProfitRR", "takeProfitRiskRewardRatio", "take_profit_rr_ratio"),
+                trailing_enabled: riskValue("trailingEnabled", "trailing_enabled"),
+                trailing_mode: riskValue("trailingMode", "trailing_mode"),
+                trailing_atr_period: riskValue("trailingAtrPeriod", "trailing_atr_period"),
+                trailing_atr_multiplier: riskValue("trailingAtrMultiplier", "trailing_atr_multiplier"),
+                trailing_lookback: riskValue("trailingLookback", "trailing_lookback"),
+                trailing_volatility_source: riskValue("trailingVolatilitySource", "trailing_volatility_source"),
+                initial_trailing_settings: diagnosticRecord.trailing_settings,
+                highest_observed_price: diagnosticRecord.highest_price,
+                lowest_observed_price: diagnosticRecord.lowest_price,
+                mfe_value: diagnosticRecord.mfe,
+                mae_value: diagnosticRecord.mae,
+                final_stop_loss: diagnosticRecord.current_stop_loss,
+                final_take_profit: diagnosticRecord.take_profit,
+                exit_reference_price: diagnosticRecord.exit_price,
+                exit_fill_price: diagnosticRecord.exit_price,
+                exit_filled_quantity: diagnosticRecord.exit_quantity,
+                exit_reason: diagnosticRecord.exit_reason,
+                gross_pnl: diagnosticRecord.gross_pnl,
+                total_fees: diagnosticRecord.fees,
+                net_pnl: diagnosticRecord.net_pnl,
+                data_quality_status: diagnosticRecord.data_quality,
+                diagnostic_notes: {
+                    missingFields,
+                    captureStage,
+                    sourceSnapshot: diagnosticRecord.source_snapshot,
+                    stopHistory: diagnosticRecord.stop_history,
+                    fundingFees: diagnosticRecord.funding_fees,
+                    expectedRisk: diagnosticRecord.expected_risk,
+                    realizedR: diagnosticRecord.realized_r
+                }
+            };
+
             return await TradeDiagnosticRepository.upsertDiagnostic(
-                diagnosticRecord
+                databaseRecord
             );
         }
         catch (error) {
