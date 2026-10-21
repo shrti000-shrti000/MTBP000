@@ -3386,9 +3386,12 @@ class PositionStore {
         }
 
 
+        const previous =
+            this.positions[index];
+
         this.positions[index] = {
 
-            ...this.positions[index],
+            ...previous,
 
             ...position
 
@@ -3397,6 +3400,65 @@ class PositionStore {
 
         const current =
             this.positions[index];
+
+        let diagnosticRiskChanged = false;
+
+        if (current.stopLoss !== previous.stopLoss) {
+
+            diagnosticRiskChanged = true;
+
+            await this.recordDiagnosticEvent({
+                position_id: current.id,
+                event_type: "STOP_LOSS_CHANGED",
+                source: "PositionStore.update",
+                exchange: current.exchange,
+                symbol: current.symbol,
+                price: current.stopLoss,
+                old_values: { stopLoss: previous.stopLoss ?? null },
+                new_values: { stopLoss: current.stopLoss ?? null }
+            });
+
+        }
+
+        if (current.takeProfit !== previous.takeProfit) {
+
+            diagnosticRiskChanged = true;
+
+            await this.recordDiagnosticEvent({
+                position_id: current.id,
+                event_type: "TAKE_PROFIT_CHANGED",
+                source: "PositionStore.update",
+                exchange: current.exchange,
+                symbol: current.symbol,
+                price: current.takeProfit,
+                old_values: { takeProfit: previous.takeProfit ?? null },
+                new_values: { takeProfit: current.takeProfit ?? null }
+            });
+
+        }
+
+        if (
+            JSON.stringify(current.trailing ?? null) !==
+            JSON.stringify(previous.trailing ?? null)
+        ) {
+
+            diagnosticRiskChanged = true;
+
+            await this.recordDiagnosticEvent({
+                position_id: current.id,
+                event_type: "TRAILING_STATE_CHANGED",
+                source: "PositionStore.update",
+                exchange: current.exchange,
+                symbol: current.symbol,
+                old_values: { trailing: previous.trailing ?? null },
+                new_values: { trailing: current.trailing ?? null }
+            });
+
+        }
+
+        if (diagnosticRiskChanged) {
+            await this.upsertPositionDiagnostic(current, "RISK_SETTINGS_CHANGED");
+        }
 
 
         try {
