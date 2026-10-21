@@ -97,6 +97,9 @@ const signal =
 // Capture the exact inputs used for this signal without changing the decision.
 if (signal && typeof signal === "object") {
 
+    signal.timestamp =
+        new Date().toISOString();
+
     signal.strategySettings =
         JSON.parse(JSON.stringify(strategySettings ?? {}));
 
