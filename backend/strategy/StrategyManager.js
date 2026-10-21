@@ -100,6 +100,11 @@ if (signal && typeof signal === "object") {
     signal.timestamp =
         new Date().toISOString();
 
+    signal.signalPrice =
+        Number.isFinite(Number(marketData?.price)) && Number(marketData?.price) > 0
+            ? Number(marketData.price)
+            : null;
+
     signal.strategySettings =
         JSON.parse(JSON.stringify(strategySettings ?? {}));
 
