@@ -514,6 +514,56 @@ class ExecutionEngine {
                 null,
 
 
+            signalType:
+
+                signal.signal ?? signal.signalType ?? null,
+
+
+            signalScore:
+
+                signal.signalScore ?? null,
+
+
+            buyScore:
+
+                signal.buyScore ?? null,
+
+
+            sellScore:
+
+                signal.sellScore ?? null,
+
+
+            buyVotes:
+
+                signal.buyVotes ?? null,
+
+
+            sellVotes:
+
+                signal.sellVotes ?? null,
+
+
+            signalDetails:
+
+                signal.details ?? {},
+
+
+            indicatorScores:
+
+                signal.details ?? {},
+
+
+            strategySettings:
+
+                signal.strategySettings ?? null,
+
+
+            signalTime:
+
+                signal.timestamp ?? signal.createdAt ?? null,
+
+
             confidence:
 
                 signal.confidence ??
