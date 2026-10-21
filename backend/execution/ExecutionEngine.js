@@ -564,6 +564,11 @@ class ExecutionEngine {
                 signal.timestamp ?? signal.createdAt ?? null,
 
 
+            signalPrice:
+
+                signal.signalPrice ?? signal.price ?? null,
+
+
             confidence:
 
                 signal.confidence ??
