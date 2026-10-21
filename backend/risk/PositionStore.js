@@ -1182,9 +1182,6 @@ class PositionStore {
             );
         }
         catch (error) {
-            console.error("❌ TRADE DIAGNOSTIC SNAPSHOT WRITE ERROR:"            });
-        }
-        catch (error) {
             console.error("❌ TRADE DIAGNOSTIC SNAPSHOT WRITE ERROR:", error?.message || error);
             return null;
         }
