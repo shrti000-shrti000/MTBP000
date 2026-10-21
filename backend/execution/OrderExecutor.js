@@ -1315,6 +1315,36 @@ class OrderExecutor {
             signalId:
                 order.signalId ?? null,
 
+            signalType:
+                order.signalType ?? null,
+
+            signalScore:
+                order.signalScore ?? null,
+
+            buyScore:
+                order.buyScore ?? null,
+
+            sellScore:
+                order.sellScore ?? null,
+
+            buyVotes:
+                order.buyVotes ?? null,
+
+            sellVotes:
+                order.sellVotes ?? null,
+
+            signalDetails:
+                order.signalDetails ?? {},
+
+            indicatorScores:
+                order.indicatorScores ?? {},
+
+            strategySettings:
+                order.strategySettings ?? null,
+
+            signalTime:
+                order.signalTime ?? null,
+
             confidence:
                 order.confidence ?? null,
 
