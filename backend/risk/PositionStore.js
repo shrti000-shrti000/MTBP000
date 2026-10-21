@@ -3501,7 +3501,8 @@ class PositionStore {
         id,
         exitPrice,
         reason = null,
-        fees = 0
+        fees = 0,
+        executionDetails = {}
     ) {
 
         const position =
@@ -3559,6 +3560,30 @@ class PositionStore {
             Number(
                 fees || 0
             );
+
+        if (executionDetails && typeof executionDetails === "object") {
+
+            position.exitOrderId =
+                executionDetails.exitOrderId ??
+                position.exitOrderId ??
+                null;
+
+            position.exitFills =
+                Array.isArray(executionDetails.exitFills)
+                    ? executionDetails.exitFills
+                    : position.exitFills ?? [];
+
+            position.fundingFees =
+                executionDetails.fundingFees ??
+                position.fundingFees ??
+                null;
+
+            position.exitCandle =
+                executionDetails.exitCandle ??
+                position.exitCandle ??
+                null;
+
+        }
 
 
         console.log(
