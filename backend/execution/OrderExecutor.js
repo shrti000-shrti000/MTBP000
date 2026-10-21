@@ -1339,6 +1339,28 @@ class OrderExecutor {
             indicatorScores:
                 order.indicatorScores ?? {},
 
+            // Keep diagnostic context on the stored order so position creation can preserve it.
+            indicatorValues:
+                order.indicatorValues ??
+                order.signalDetails?.rawIndicators ??
+                {},
+
+            riskSettings:
+                order.riskSettings ??
+                riskSettings ??
+                {},
+
+            signalCandle:
+                order.signalCandle ?? null,
+
+            entryCandle:
+                order.entryCandle ?? null,
+
+            entryCandleContext:
+                Array.isArray(order.entryCandleContext)
+                    ? order.entryCandleContext
+                    : [],
+
             strategySettings:
                 order.strategySettings ?? null,
 
