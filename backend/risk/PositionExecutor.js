@@ -419,6 +419,26 @@ class PositionExecutor {
             indicatorScores:
                 tradePlan.indicatorScores ?? {},
 
+            // Preserve diagnostic context until PositionStore persistence.
+            indicatorValues:
+                tradePlan.indicatorValues ??
+                tradePlan.signalDetails?.rawIndicators ??
+                {},
+
+            riskSettings:
+                tradePlan.riskSettings ?? null,
+
+            signalCandle:
+                tradePlan.signalCandle ?? null,
+
+            entryCandle:
+                tradePlan.entryCandle ?? null,
+
+            entryCandleContext:
+                Array.isArray(tradePlan.entryCandleContext)
+                    ? tradePlan.entryCandleContext
+                    : [],
+
             strategySettings:
                 tradePlan.strategySettings ?? null,
 
