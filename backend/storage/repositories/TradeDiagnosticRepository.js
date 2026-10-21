@@ -179,7 +179,7 @@ class TradeDiagnosticRepository {
         addCondition("symbol", symbol);
         addCondition("mode", mode);
         addCondition("side", side);
-        addCondition("data_quality", dataQuality);
+        addCondition("data_quality_status", dataQuality);
 
         values.push(safeLimit);
         const limitParameter = `$${values.length}`;
@@ -194,7 +194,7 @@ class TradeDiagnosticRepository {
                 SELECT *
                 FROM ${quoteIdentifier(this.diagnosticsTable)}
                 ${whereClause}
-                ORDER BY entry_time DESC NULLS LAST, created_at DESC NULLS LAST
+                ORDER BY position_opened_at DESC NULLS LAST, created_at DESC NULLS LAST
                 LIMIT ${limitParameter}
                 OFFSET ${offsetParameter}
             `,
@@ -273,9 +273,9 @@ class TradeDiagnosticRepository {
             `
                 SELECT *
                 FROM ${quoteIdentifier(this.diagnosticsTable)}
-                WHERE data_quality IS NULL
-                   OR data_quality <> 'COMPLETE'
-                   OR jsonb_array_length(COALESCE(missing_fields, '[]'::jsonb)) > 0
+                WHERE data_quality_status IS NULL
+                   OR data_quality_status <> 'COMPLETE'
+                   OR cardinality(COALESCE(missing_fields, ARRAY[]::text[])) > 0
                 ORDER BY created_at DESC NULLS LAST
                 LIMIT $1
             `,
@@ -296,19 +296,19 @@ class TradeDiagnosticRepository {
                 SELECT
                     COUNT(*)::integer AS total_diagnostics,
                     COUNT(*) FILTER (
-                        WHERE data_quality = 'COMPLETE'
+                        WHERE data_quality_status = 'COMPLETE'
                     )::integer AS complete_diagnostics,
                     COUNT(*) FILTER (
-                        WHERE data_quality IS DISTINCT FROM 'COMPLETE'
+                        WHERE data_quality_status IS DISTINCT FROM 'COMPLETE'
                     )::integer AS incomplete_diagnostics,
                     COUNT(*) FILTER (
-                        WHERE signal_candle IS NULL
+                        WHERE signal_candle_open_time IS NULL
                     )::integer AS missing_signal_candle,
                     COUNT(*) FILTER (
-                        WHERE entry_candle IS NULL
+                        WHERE entry_candle_open_time IS NULL
                     )::integer AS missing_entry_candle,
                     COUNT(*) FILTER (
-                        WHERE exit_candle IS NULL
+                        WHERE exit_candle_open_time IS NULL
                     )::integer AS missing_exit_candle
                 FROM ${quoteIdentifier(this.diagnosticsTable)}
             `
