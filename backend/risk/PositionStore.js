@@ -972,6 +972,10 @@ class PositionStore {
 
         if (!position.signalCandle) missingFields.push("signal_candle");
         if (!position.entryCandle) missingFields.push("entry_candle");
+        if (candlesAtCapture.length === 0) missingFields.push("candles_at_entry_context");
+        if (Object.keys(indicatorValues).length === 0) missingFields.push("indicator_values");
+        if (Object.keys(position.strategySettings ?? {}).length === 0) missingFields.push("strategy_settings");
+        if (Object.keys(position.riskSettings ?? riskSettings ?? {}).length === 0) missingFields.push("risk_settings");
         if (!position.signalDetails || Object.keys(position.signalDetails).length === 0) {
             missingFields.push("signal_details");
         }
@@ -990,7 +994,12 @@ class PositionStore {
             if (!position.exitCandle && candlesAtCapture.length === 0) {
                 missingFields.push("exit_candle");
             }
-            if (!position.exitOrderId) missingFields.push("exit_order_id");
+            if (
+                String(position.mode ?? "PAPER").toUpperCase() === "LIVE" &&
+                !position.exitOrderId
+            ) {
+                missingFields.push("exit_order_id");
+            }
             if (!Array.isArray(position.exitFills) || position.exitFills.length === 0) {
                 missingFields.push("exit_fills");
             }
@@ -1017,6 +1026,11 @@ class PositionStore {
         const grossPnl = position.status === "CLOSED" ? Number(position.pnl?.value ?? 0) : null;
         const fees = Number(position.fees ?? 0);
         const fundingFees = Number(position.fundingFees ?? 0);
+        const riskAmount = Number(position.riskAmount ?? 0);
+        const realizedR =
+            grossPnl !== null && Number.isFinite(riskAmount) && riskAmount > 0
+                ? grossPnl / riskAmount
+                : null;
 
         try {
             const diagnosticRecord = {
@@ -1070,7 +1084,7 @@ class PositionStore {
                 funding_fees: position.fundingFees ?? null,
                 net_pnl: grossPnl === null ? null : grossPnl - fees - fundingFees,
                 expected_risk: position.riskAmount ?? null,
-                realized_r: null,
+                realized_r: realizedR,
                 data_quality: missingFields.length === 0 ? "COMPLETE" : "INCOMPLETE",
                 missing_fields: missingFields,
                 source_snapshot: {
@@ -1078,6 +1092,12 @@ class PositionStore {
                     positionId: position.id,
                     positionCode: position.positionCode ?? null,
                     orderType: position.orderType ?? null,
+                    signalPrice: position.signalPrice ?? null,
+                    entryPrice: position.entryPrice ?? null,
+                    entryPriceVsSignalPrice:
+                        position.signalPrice != null && position.entryPrice != null
+                            ? Number(position.entryPrice) - Number(position.signalPrice)
+                            : null,
                     confidence: position.confidence ?? null,
                     atr: position.atr ?? null,
                     trailing: position.trailing ?? null,
