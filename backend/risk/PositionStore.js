@@ -1071,7 +1071,7 @@ class PositionStore {
                 net_pnl: grossPnl === null ? null : grossPnl - fees - fundingFees,
                 expected_risk: position.riskAmount ?? null,
                 realized_r: null,
-                data_quality: "INCOMPLETE",
+                data_quality: missingFields.length === 0 ? "COMPLETE" : "INCOMPLETE",
                 missing_fields: missingFields,
                 source_snapshot: {
                     captureStage,
