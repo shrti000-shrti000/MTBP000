@@ -182,7 +182,47 @@ class PositionCreator {
 
                         signalId:
                             order.signalId ??
-                            null
+                            null,
+
+                        signalType:
+                            order.signalType ?? null,
+
+                        signalScore:
+                            order.signalScore ?? null,
+
+                        buyScore:
+                            order.buyScore ?? null,
+
+                        sellScore:
+                            order.sellScore ?? null,
+
+                        buyVotes:
+                            order.buyVotes ?? null,
+
+                        sellVotes:
+                            order.sellVotes ?? null,
+
+                        signalDetails:
+                            order.signalDetails ?? {},
+
+                        indicatorScores:
+                            order.indicatorScores ?? {},
+
+                        strategySettings:
+                            order.strategySettings ?? null,
+
+                        signalTime:
+                            order.signalTime ?? null,
+
+                        entryOrderId:
+                            order.orderId ?? order.id ?? null,
+
+                        entryFills:
+                            order.fills ?? [{
+                                price: order.filledPrice ?? order.price ?? null,
+                                quantity: order.filledQuantity ?? order.quantity ?? null,
+                                filledAt: order.filledAt ?? null
+                            }]
 
                     }
 
