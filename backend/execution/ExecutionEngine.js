@@ -554,6 +554,29 @@ class ExecutionEngine {
                 signal.details ?? {},
 
 
+            // Preserve the exact indicator inputs used to calculate the signal.
+            indicatorValues:
+                signal.indicatorValues ??
+                signal.details?.rawIndicators ??
+                {},
+
+
+            // Preserve risk settings only when supplied by the risk plan.
+            riskSettings:
+                riskPlan.riskSettings ??
+                null,
+
+
+            signalCandle:
+                signal.signalCandle ??
+                null,
+
+
+            entryCandle:
+                signal.entryCandle ??
+                null,
+
+
             strategySettings:
 
                 signal.strategySettings ?? null,
