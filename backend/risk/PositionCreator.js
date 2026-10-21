@@ -214,6 +214,9 @@ class PositionCreator {
                         signalTime:
                             order.signalTime ?? null,
 
+                        signalPrice:
+                            order.signalPrice ?? null,
+
                         entryOrderId:
                             order.orderId ?? order.id ?? null,
 
