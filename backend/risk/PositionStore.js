@@ -1274,6 +1274,48 @@ class PositionStore {
                     signalId:
                         position.signalId ?? null,
 
+                    signalType:
+                        position.signalType ?? null,
+
+                    signalScore:
+                        position.signalScore ?? null,
+
+                    buyScore:
+                        position.buyScore ?? null,
+
+                    sellScore:
+                        position.sellScore ?? null,
+
+                    buyVotes:
+                        position.buyVotes ?? null,
+
+                    sellVotes:
+                        position.sellVotes ?? null,
+
+                    signalDetails:
+                        position.signalDetails ?? {},
+
+                    indicatorScores:
+                        position.indicatorScores ?? {},
+
+                    strategySettings:
+                        position.strategySettings ?? null,
+
+                    signalTime:
+                        position.signalTime ?? null,
+
+                    signalPrice:
+                        position.signalPrice ?? null,
+
+                    entryOrderId:
+                        position.entryOrderId ?? null,
+
+                    entryFills:
+                        position.entryFills ?? [],
+
+                    initialStopLoss:
+                        position.stopLoss ?? null,
+
                     openedAt,
 
                     closedAt:
