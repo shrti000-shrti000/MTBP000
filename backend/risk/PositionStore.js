@@ -906,6 +906,43 @@ class PositionStore {
 
         let indicatorValues = {};
 
+        let candlesAtCapture = [];
+
+        if (this.candleStore && position.symbol && position.timeframe) {
+
+            try {
+
+                const candleHistory =
+                    this.candleStore.get(
+                        position.symbol,
+                        position.timeframe
+                    );
+
+                if (Array.isArray(candleHistory)) {
+                    candlesAtCapture = candleHistory.slice(-10);
+                }
+
+            }
+            catch (error) {
+
+                console.error(
+                    "❌ TRADE DIAGNOSTIC CANDLE SNAPSHOT ERROR:",
+                    error?.message || error
+                );
+
+            }
+
+        }
+
+        if (
+            captureStage === "POSITION_OPENED" &&
+            !Array.isArray(position.entryCandleContext)
+        ) {
+
+            position.entryCandleContext = candlesAtCapture;
+
+        }
+
         if (position.exchange && position.symbol && position.timeframe) {
             try {
                 indicatorValues = IndicatorStore.getAll(
@@ -1008,6 +1045,8 @@ class PositionStore {
                     confidence: position.confidence ?? null,
                     atr: position.atr ?? null,
                     trailing: position.trailing ?? null,
+                    candlesAtEntry: position.entryCandleContext ?? [],
+                    candlesAtCapture,
                     indicatorValues
                 }
             });
