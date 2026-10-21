@@ -1,6 +1,7 @@
 // backend/strategy/StrategyManager.js
 
 
+import crypto from "crypto";
 import SignalEngine from "./SignalEngine.js";
 import strategySettings from "../config/strategySettings.js";
 import SignalMemory from "./SignalMemory.js";
@@ -96,6 +97,9 @@ const signal =
 
 // Capture the exact inputs used for this signal without changing the decision.
 if (signal && typeof signal === "object") {
+
+    signal.id =
+        signal.id ?? crypto.randomUUID();
 
     signal.timestamp =
         new Date().toISOString();
