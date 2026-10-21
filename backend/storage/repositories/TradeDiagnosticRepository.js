@@ -1,24 +1,40 @@
 import PostgresAdapter from "../database/PostgresAdapter.js";
 
-const DIAGNOSTIC_FIELDS = new Set([
-  "position_id", "position_code", "exchange", "symbol", "mode", "side",
-  "timeframe", "strategy_name", "signal_id", "signal_time", "signal_type",
-  "signal_price", "signal_confidence", "signal_score", "buy_score", "sell_score",
-  "signal_details", "indicator_scores", "indicator_values", "strategy_settings",
-  "risk_settings", "signal_candle", "entry_candle", "exit_candle", "entry_time",
-  "entry_price", "entry_quantity", "entry_order_id", "entry_fills",
-  "initial_stop_loss", "current_stop_loss", "take_profit", "trailing_settings",
-  "stop_history", "exit_time", "exit_price", "exit_quantity", "exit_order_id",
-  "exit_reason", "exit_fills", "highest_price", "lowest_price", "mfe", "mae",
-  "gross_pnl", "fees", "funding_fees", "net_pnl", "expected_risk", "realized_r",
-  "data_quality", "missing_fields", "source_snapshot"
-]);
+const SYSTEM_FIELDS = {
+  trade_diagnostics: new Set(["id", "created_at", "updated_at"]),
+  trade_diagnostic_events: new Set(["id", "created_at"])
+};
 
-const EVENT_FIELDS = new Set([
-  "position_id", "event_at", "event_type", "source", "exchange", "symbol",
-  "order_id", "price", "quantity", "old_values", "new_values", "event_details",
-  "data_quality"
-]);
+const fieldCache = new Map();
+
+async function getAllowedFields(tableName) {
+  if (!SYSTEM_FIELDS[tableName]) {
+    throw new Error(`Unsupported diagnostic table: ${tableName}`);
+  }
+
+  if (!fieldCache.has(tableName)) {
+    const result = await PostgresAdapter.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [tableName]
+    );
+
+    const fields = new Set(
+      (result.rows ?? [])
+        .map(row => row.column_name)
+        .filter(name => !SYSTEM_FIELDS[tableName].has(name))
+    );
+
+    if (fields.size === 0) {
+      throw new Error(`No columns found for diagnostic table: ${tableName}`);
+    }
+
+    fieldCache.set(tableName, fields);
+  }
+
+  return fieldCache.get(tableName);
+}
 
 function validateFields(input, allowedFields, requiredFields = []) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
@@ -39,7 +55,8 @@ function validateFields(input, allowedFields, requiredFields = []) {
 
 export default class TradeDiagnosticRepository {
   static async upsertDiagnostic(diagnostic) {
-    validateFields(diagnostic, DIAGNOSTIC_FIELDS, ["position_id"]);
+    const allowedFields = await getAllowedFields("trade_diagnostics");
+    validateFields(diagnostic, allowedFields, ["position_id"]);
     const entries = Object.entries(diagnostic);
     const columns = entries.map(([key]) => `"${key}"`);
     const placeholders = entries.map((_, index) => `$${index + 1}`);
@@ -101,7 +118,8 @@ export default class TradeDiagnosticRepository {
   }
 
   static async addEvent(event) {
-    validateFields(event, EVENT_FIELDS, ["position_id", "event_type"]);
+    const allowedFields = await getAllowedFields("trade_diagnostic_events");
+    validateFields(event, allowedFields, ["position_id", "event_type"]);
     const entries = Object.entries(event);
     const columns = entries.map(([key]) => `"${key}"`);
     const placeholders = entries.map((_, index) => `$${index + 1}`);
