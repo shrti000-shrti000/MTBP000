@@ -1345,6 +1345,9 @@ class OrderExecutor {
             signalTime:
                 order.signalTime ?? null,
 
+            signalPrice:
+                order.signalPrice ?? null,
+
             confidence:
                 order.confidence ?? null,
 
