@@ -971,7 +971,7 @@ class PositionStore {
         const missingFields = [];
 
         if (!position.signalCandle) missingFields.push("signal_candle");
-        if (!position.entryCandle) missingFields.push("entry_candle");
+        if (!position.entryCandle && !(captureStage === "POSITION_OPENED" && candlesAtCapture.length > 0)) missingFields.push("entry_candle");
         if (candlesAtCapture.length === 0) missingFields.push("candles_at_entry_context");
         if (Object.keys(indicatorValues).length === 0) missingFields.push("indicator_values");
         if (Object.keys(position.strategySettings ?? {}).length === 0) missingFields.push("strategy_settings");
@@ -1056,7 +1056,7 @@ class PositionStore {
                 strategy_settings: position.strategySettings ?? {},
                 risk_settings: position.riskSettings ?? riskSettings ?? {},
                 signal_candle: position.signalCandle ?? null,
-                entry_candle: position.entryCandle ?? null,
+                entry_candle: position.entryCandle ?? (captureStage === "POSITION_OPENED" ? candlesAtCapture.at(-1) ?? null : null),
                 exit_candle: position.exitCandle ??
                     (captureStage === "POSITION_CLOSED" ? candlesAtCapture.at(-1) ?? null : null),
                 entry_time: position.openedAt ?? null,
