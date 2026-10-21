@@ -395,6 +395,42 @@ class PositionExecutor {
             signalId:
                 tradePlan.signalId ?? null,
 
+            signalType:
+                tradePlan.signalType ?? null,
+
+            signalScore:
+                tradePlan.signalScore ?? null,
+
+            buyScore:
+                tradePlan.buyScore ?? null,
+
+            sellScore:
+                tradePlan.sellScore ?? null,
+
+            buyVotes:
+                tradePlan.buyVotes ?? null,
+
+            sellVotes:
+                tradePlan.sellVotes ?? null,
+
+            signalDetails:
+                tradePlan.signalDetails ?? {},
+
+            indicatorScores:
+                tradePlan.indicatorScores ?? {},
+
+            strategySettings:
+                tradePlan.strategySettings ?? null,
+
+            signalTime:
+                tradePlan.signalTime ?? null,
+
+            entryOrderId:
+                tradePlan.entryOrderId ?? null,
+
+            entryFills:
+                tradePlan.entryFills ?? [],
+
 
             // ------------------------------------------
             // TIME
