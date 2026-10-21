@@ -2,6 +2,7 @@
 
 
 import SignalEngine from "./SignalEngine.js";
+import strategySettings from "../config/strategySettings.js";
 import SignalMemory from "./SignalMemory.js";
 import RiskManager from "../risk/RiskManager.js";
 import ExecutionEngine from "../execution/ExecutionEngine.js";
@@ -92,6 +93,24 @@ const signal =
     SignalEngine.calculate(
         indicators
     );
+
+// Capture the exact inputs used for this signal without changing the decision.
+if (signal && typeof signal === "object") {
+
+    signal.strategySettings =
+        JSON.parse(JSON.stringify(strategySettings ?? {}));
+
+    signal.details = {
+        ...(signal.details ?? {}),
+        rawIndicators:
+            indicators && typeof indicators === "object"
+                ? JSON.parse(JSON.stringify(indicators))
+                : {},
+        diagnosticCapturedAt:
+            new Date().toISOString()
+    };
+
+}
 
 
 
