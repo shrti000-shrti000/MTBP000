@@ -1040,7 +1040,7 @@ class PositionStore {
                 indicator_scores: position.indicatorScores ?? {},
                 indicator_values: indicatorValues,
                 strategy_settings: position.strategySettings ?? {},
-                risk_settings: position.riskSettings ?? {},
+                risk_settings: position.riskSettings ?? riskSettings ?? {},
                 signal_candle: position.signalCandle ?? null,
                 entry_candle: position.entryCandle ?? null,
                 exit_candle: position.exitCandle ??
