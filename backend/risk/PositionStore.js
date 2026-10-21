@@ -904,7 +904,14 @@ class PositionStore {
 
         if (!position?.id) return null;
 
-        let indicatorValues = {};
+        let indicatorValues =
+            position.indicatorValues &&
+            typeof position.indicatorValues === "object"
+                ? position.indicatorValues
+                : position.signalDetails?.rawIndicators &&
+                  typeof position.signalDetails.rawIndicators === "object"
+                    ? position.signalDetails.rawIndicators
+                    : {};
 
         let candlesAtCapture = [];
 
@@ -943,7 +950,12 @@ class PositionStore {
 
         }
 
-        if (position.exchange && position.symbol && position.timeframe) {
+        if (
+            Object.keys(indicatorValues).length === 0 &&
+            position.exchange &&
+            position.symbol &&
+            position.timeframe
+        ) {
             try {
                 indicatorValues = IndicatorStore.getAll(
                     position.exchange,
